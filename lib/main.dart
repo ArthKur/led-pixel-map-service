@@ -88,7 +88,7 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
     setState(() {
       final newSurface = Surface(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: 'Surface ${_surfaces.length + 1}',
+        name: 'NAME',
       );
       _surfaces.add(newSurface);
       _activeSurfaceIndex = _surfaces.length - 1;
@@ -497,53 +497,6 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      // Stacked and Rigged checkboxes
-                      Container(
-                        width: 300,
-                        child: Row(
-                          children: [
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _isStacked,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _isStacked = value ?? false;
-                                      _updateActiveSurfaceFromControllers();
-                                    });
-                                  },
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                const Text(
-                                  'Stacked',
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(width: 20),
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _isRigged,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _isRigged = value ?? false;
-                                      _updateActiveSurfaceFromControllers();
-                                    });
-                                  },
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                const Text(
-                                  'Rigged',
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
                       // LED Specifications Display - wider and all columns in one row
                       if (_activeLED != null)
                         Container(
@@ -747,52 +700,113 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
                     ],
                   ),
                 ),
-                // Second surface box (empty for now)
+                // Second surface box - name input for all surfaces
                 Positioned(
                   top: 20,
                   left:
                       340, // 20 (left margin) + 300 (width of first box) + 20 (spacing)
                   child: Container(
                     width: 300,
-                    height: 200, // Same approximate height as search area
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.grey[400]!),
                     ),
-                    child: const Center(
-                      child: Text(
-                        'Surface Box 2\n(Empty for now)',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                    child: TextField(
+                      controller: _nameController,
+                      onChanged: (value) {
+                        _updateActiveSurfaceFromControllers();
+                        setState(() {});
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'Surface name...',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(12),
                       ),
                     ),
                   ),
                 ),
-                // Add Surface button (positioned separately to the right)
-                if (_surfaces.length == 1)
-                  Positioned(
-                    top: 20,
-                    left: 320, // 20 (original left) + 300 (requested move)
-                    child: Container(
-                      child: ElevatedButton.icon(
-                        onPressed: _addSurface,
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Surface'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
+                // Stacked and Rigged checkboxes - positioned under name input
+                Positioned(
+                  top: 88, // 20 (top) + 48 (TextField height) + 20 (spacing)
+                  left: 340, // Same left position as name input box
+                  child: Container(
+                    width: 300, // Same width as second surface box
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center, // Center the checkboxes
+                      children: [
+                        // Stacked checkbox
+                        Row(
+                          children: [
+                            Transform.scale(
+                              scale: 0.7, // 30% smaller
+                              child: Checkbox(
+                                value: _isStacked,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _isStacked = value ?? false;
+                                    _updateActiveSurfaceFromControllers();
+                                  });
+                                },
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            const Text(
+                              'Stacked',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          ],
                         ),
+                        const SizedBox(width: 16),
+                        // Rigged checkbox
+                        Row(
+                          children: [
+                            Transform.scale(
+                              scale: 0.7, // 30% smaller
+                              child: Checkbox(
+                                value: _isRigged,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _isRigged = value ?? false;
+                                    _updateActiveSurfaceFromControllers();
+                                  });
+                                },
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            const Text(
+                              'Rigged',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Add Surface button - moved outside to the right
+                Positioned(
+                  top: 20,
+                  left: 660, // 20 + 300 + 20 + 300 + 20 (positioning to the right of second box)
+                  child: ElevatedButton.icon(
+                    onPressed: _addSurface,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Surface'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
                       ),
                     ),
                   ),
+                ),
                 // Bottom left buttons
                 Positioned(
                   bottom: 20,
