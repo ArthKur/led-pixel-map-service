@@ -27,9 +27,9 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '8.1 - Sharp Text Rendering with TrueType Fonts',
-        'message': 'Service generating PNG files with crisp text, proper font sizing, and anti-aliasing',
-        'timestamp': '2025-08-04-02:30'
+        'version': '8.2 - Perfect Text: 50% Transparent, Proper Sizing, Top-Left Panel Numbers',
+        'message': 'Service with screen-proportional text sizing, 50% transparency, and top-left panel numbering',
+        'timestamp': '2025-08-04-03:00'
     })
 
 @app.route('/test')
@@ -78,10 +78,10 @@ def generate_pixel_map():
         image = Image.new('RGB', (display_width, display_height), color='black')
         draw = ImageDraw.Draw(image)
         
-        # Calculate proper font sizes based on display dimensions for sharp text
-        title_font_size = max(16, min(48, display_width // 50))  # Scale font with image size
-        info_font_size = max(10, min(24, display_width // 80))   # Smaller font for info
-        panel_font_size = max(8, min(16, panel_display_width // 15))  # Panel number font
+        # Calculate proper font sizes based on screen dimensions (not panel size)
+        title_font_size = max(20, int(display_height * 0.20))    # 20% of screen height
+        info_font_size = max(12, int(display_height * 0.05))     # 5% of screen height  
+        panel_font_size = max(8, min(20, int(panel_display_width * 0.15)))  # 15% of panel width
         
         # Try to load fonts with calculated sizes - use truetype for sharp rendering
         try:
@@ -128,81 +128,61 @@ def generate_pixel_map():
                 draw.rectangle([x, y, x + panel_display_width, y + panel_display_height], 
                              fill=panel_color, outline='white', width=1)
                 
-                # Draw panel number if enabled and panel is large enough
-                if show_panel_numbers and panel_display_width > 30 and panel_display_height > 20:
-                    text_x = x + panel_display_width // 2
-                    text_y = y + panel_display_height // 2 - 6
+                # Draw panel number if enabled - always show in top-left corner with margin
+                if show_panel_numbers and panel_display_width > 20 and panel_display_height > 15:
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # Calculate text position for centering with sharp font
+                    # Position in top-left corner with small margin
+                    margin = max(2, int(panel_display_width * 0.05))  # 5% margin from edges
+                    text_x = x + margin
+                    text_y = y + margin
+                    
+                    # Always draw panel numbers for better visibility
                     if panel_font:
-                        # Get text dimensions for better centering
-                        try:
-                            bbox = draw.textbbox((0, 0), panel_number, font=panel_font)
-                            text_width = bbox[2] - bbox[0]
-                            text_height = bbox[3] - bbox[1]
-                            text_x = x + (panel_display_width - text_width) // 2
-                            text_y = y + (panel_display_height - text_height) // 2
-                        except:
-                            # Fallback to simple centering
-                            text_x = x + panel_display_width // 2 - 10
-                            text_y = y + panel_display_height // 2 - 6
-                        
-                        draw.text((text_x, text_y), panel_number, fill='black', font=panel_font)
+                        draw.text((text_x, text_y), panel_number, fill='white', font=panel_font)
                     else:
-                        # Basic positioning without font
-                        text_x = x + panel_display_width // 2 - 10
-                        text_y = y + panel_display_height // 2 - 6
-                        draw.text((text_x, text_y), panel_number, fill='black')
+                        draw.text((text_x, text_y), panel_number, fill='white')
         
-        # Draw "Screen X" title in CENTER of canvas with sharp font
+        # Create semi-transparent overlay for text (50% transparency)
+        # We'll create a separate layer for transparency effects
+        text_overlay = Image.new('RGBA', (display_width, display_height), (0, 0, 0, 0))
+        text_draw = ImageDraw.Draw(text_overlay)
+        
+        # Draw "Screen X" title in CENTER with 50% transparency (text only, no background)
         title_text = f"Screen {surface_index + 1}"
         if title_font:
             try:
-                bbox = draw.textbbox((0, 0), title_text, font=title_font)
+                bbox = text_draw.textbbox((0, 0), title_text, font=title_font)
                 text_width = bbox[2] - bbox[0]
                 text_height = bbox[3] - bbox[1]
                 title_x = (display_width - text_width) // 2
                 title_y = (display_height - text_height) // 2
             except:
-                title_x = display_width // 2 - 40
-                title_y = display_height // 2 - 10
+                title_x = display_width // 2 - (title_font_size * 3)
+                title_y = display_height // 2 - (title_font_size // 2)
             
-            # Draw title with dark background for visibility
-            draw.rectangle([title_x - 10, title_y - 5, title_x + text_width + 10, title_y + text_height + 5], 
-                          fill=(30, 30, 30))  # Dark gray background
-            draw.text((title_x, title_y), title_text, fill='gold', font=title_font)
+            # Draw semi-transparent gold text (50% opacity)
+            text_draw.text((title_x, title_y), title_text, fill=(255, 215, 0, 128), font=title_font)
         else:
-            # Simple center positioning
+            # Simple center positioning with transparency
             title_x = display_width // 2 - 40
             title_y = display_height // 2 - 10
-            draw.rectangle([title_x - 10, title_y - 5, title_x + 80, title_y + 20], 
-                          fill=(30, 30, 30))
-            draw.text((title_x, title_y), title_text, fill='gold')
+            text_draw.text((title_x, title_y), title_text, fill=(255, 215, 0, 128))
         
-        # Draw info in BOTTOM LEFT corner with sharp font
+        # Draw info in BOTTOM LEFT corner with 50% transparency (text only, no background)
         info_text = f"{panels_width}×{panels_height} panels | {total_width}×{total_height}px"
-        info_x = 10
-        info_y = display_height - 25
+        info_x = int(display_width * 0.02)  # 2% margin from left
+        info_y = display_height - int(display_height * 0.08)  # 8% margin from bottom
         
         if info_font:
-            try:
-                bbox = draw.textbbox((0, 0), info_text, font=info_font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
-            except:
-                text_width = len(info_text) * 6
-                text_height = 15
-            
-            # Draw info with dark background
-            draw.rectangle([info_x - 5, info_y - 5, info_x + text_width + 5, info_y + text_height + 5], 
-                          fill=(30, 30, 30))  # Dark gray background
-            draw.text((info_x, info_y), info_text, fill='white', font=info_font)
+            # Draw semi-transparent white text (50% opacity)
+            text_draw.text((info_x, info_y), info_text, fill=(255, 255, 255, 128), font=info_font)
         else:
-            # Simple positioning
-            draw.rectangle([info_x - 5, info_y - 5, info_x + 200, info_y + 15], 
-                          fill=(30, 30, 30))
-            draw.text((info_x, info_y), info_text, fill='white')
+            # Simple positioning with transparency
+            text_draw.text((info_x, info_y), info_text, fill=(255, 255, 255, 128))
+        
+        # Composite the text overlay onto the main image
+        image = Image.alpha_composite(image.convert('RGBA'), text_overlay).convert('RGB')
         
         # Convert image to high-quality PNG bytes
         img_buffer = io.BytesIO()
