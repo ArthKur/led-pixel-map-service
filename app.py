@@ -61,12 +61,18 @@ def generate_pixel_map():
         
         return jsonify({
             'success': True,
-            'imageData': f'data:image/svg+xml;base64,{svg_base64}',
+            'image_base64': svg_base64,  # Changed from 'imageData' to 'image_base64'
+            'imageData': f'data:image/svg+xml;base64,{svg_base64}',  # Keep both for compatibility
             'dimensions': {
                 'width': total_width,
                 'height': total_height
             },
             'file_size_mb': round(file_size_mb, 3),
+            'led_info': {
+                'name': surface.get('ledName', 'Unknown LED'),
+                'panels': f'{panels_width}×{panels_height}',
+                'resolution': f'{total_width}×{total_height}px'
+            },
             'format': 'SVG',
             'note': 'Generated without PIL dependency - using SVG format'
         })
