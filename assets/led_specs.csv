@@ -1,0 +1,32 @@
+﻿Name,Manufacturer,Model,Pitch,Full Height,Half Height,Width,Depth,Full Panel Weight,Half Panel Weight,H Pixel,W Pixel,Full Panel Max W,Half Panel Max W,Full Panel Avg W,Half Panel Avg W,Processing,Brightness,Viewing Angle,Refresh Rate,LED Configuration,IP Rating,Curve Capability,Verification,Data Connection,Power Connection,Touring frame,Operating Voltage,Operating Temp,Case Volume,Panels per case,Max panels per port,Max panels per 16A
+Ruby 1.5,ROE,Ruby 1.5,1.5,500,,500,73,8.16,,320,320,180,,90,,Megapixel,1500,140º / 140º,≤3840Hz,4 in 1 common cathode Flip chip,IP40,Concave 5° ~ Convex 5°,"CE, ETL, FCC",Neutrik EtherCON,Neutrik True1,Yes,AC110/240V - 50/60Hz, -20ºC - +50ºC,,,4,10
+Absen PL2.5 Lite,Absen,PL2.5 Lite,2.5,500,0,500,88,7.6,0,200,200,145,,48,,Novastar,1000,140º / 140º,3840,Black SMD 3 in 1,IP40 Front / IP21 Rear,-7.5°~+10,"CE, ETL, FCC, RoHS",Seetronic EtherCON,Seetronic PowerCON,No,AC110/240V - 50/60Hz, -10ºC - +40ºC,0.37,6,16,20
+Absen PL3.9 Lite,Absen,PL3.9 Lite,3.9,500,0,500,88,7.8,,128,128,145,,50,,Novastar,4500,140º / 120º,≤3840Hz,3 in 1 SMD,IP65 Front / IP54 Rear,+10º (left side),"CE, ETL, FCC, RoHS",Ceetronic EtherCON,Ceetronic True1,No,AC110/240V - 50/60Hz,-20ºC - +50ºC,0.39,8,39,20
+Unilumin Uslim2,Unilumin,Uslim2,2.6,1000,0,500,83,13,,384,192,285,142.5,95,,Novastar,3500,140º / 120º,≤1920Hz,1R 1G 1B,IP30,No,"CE, ETL, FCC, RoHS",Neutrik EtherCON,Neutrik PowerCON,No,AC110/240V - 50/60Hz,-10ºC - +45ºC,0.95,10,8,10
+Absen A3 Pro,Absen,A3 PRO 3.9,3.9,500,0,500,96,9.2,0,128,128,180,,60,,Novastar,1200,140º / 140º,≤1200Hz,3 in 1 SMD,IP40,No,"CE, ETL, FCC, RoHS",Neutrik EtherCON,Neutrik PowerCON,No,AC110/240V - 50/60Hz,-20ºC - +50ºC,,,39,16
+InfiLED ART4.6,InfiLed,ART 4.63,4.63,1000,500,500,131,21,11.34,216,108,270,135,90,45,Novastar,5000,160º / 135º,3840,3 in 1 SMD,IP65," +/- 5º, 10º left side","CE, ETL, FCC, RoHS",Nuetrik EtherCON,Neutrik True1,Yes,AC110/240V - 50/60Hz,-10ºC - +45ºC,1.58,15,26,10
+InfiLED ER5.9,InfiLed,ER5.9,5.9,1000,500,500,121,21.5,13,168,84,300,150,100,50,Brompton,5000,110º / 110º,"≤1,200Hz",3 in 1 SMD,IP65 Front / IP54 Rear,No,"CE, ETL, FCC, RoHS",Nuetrik EtherCON,Neutrik True1,Yes,AC110/240V - 50/60Hz,-10ºC - +45ºC,1.64,15,35,10
+BlackMarble 4 - Glass,ROE,BM4,4.76,609.6,0,609.6,142,23.4,0,128,128,290,,145,,Brompton,800,140,3840,SMD 1921 White,IP65,N/A,"CE, ETL, FCC",Neutrik EtherCON,Neutrik True1,Yes,AC110/240V - 50/60Hz,-20ºC - +45ºC,,,32,11
+BlackMarble 5 - Glass,ROE,BM5I,5.8,600,0,600,103,18.3,,104,104,270,,135,,Bright Logic,800,140º,≤3840Hz,SMD 1921 White,IP65,N/A,"CE, ETL, FCC",Neutrik EtherCON,Neutrik True1,Yes,AC110/240V - 50/60Hz,-20ºC - +45ºC,,,46,11
+Vanish 8T,ROE,Vanish 8T,8.9,1000,0,1000,95,18.6,,112,112,530,,265,,Novastar,4000,160º / 140º,3840,SMD 1515 White GOB,65,Concave 10° ~ Convex 10°,"CE, ETL, FCC",EtherCON,True1,Yes,AC110/240V - 50/60Hz,-20° -45°C 10-90%,1.164,8,48,6
+Diamond 8mm,Diamond,D8,8,640,0,640,70.5,9.6,0,80,80,600,,200,,Diamond Nova330,5000,140º / 140º,3840,Black S+U21MD 3 in 1,IP67 Front / IP54 Rear,No,"CE, ETL, FCC, RoHS",ODU,ODU,No,AC110/240V - 50/60Hz, -20ºC - +50ºC,,,,
+Glux BATn 10,Glux,BATn 10,10.41,1000,0,500,48,5.5,0,96,48,540,,180,,Glux,5000,140º / 140º,"≤1,200Hz",,IP65 Front / IP54 Rear,N/A,"CE, ETL, FCC, RoHS",Glux ODU,Glux ODU,No,AC110/240V - 50/60Hz, -30ºC - +40ºC,,,133,6
+Diamond 20mm,Diamond,D20 Mesh,20,640,0,640,70.5,5.75,0,32,32,300,,170,,Diamond Nova330,2500,140º / 140º,3840,Black SMD 3 in 1,IP67 Front / IP54 Rear,No,"CE, ETL, FCC, RoHS",ODU,ODU,No,AC110/240V - 50/60Hz, -20ºC - +50ºC,,,,
+Spider 30,Spider,30,30,960,0,960,138,14.8,0,32,32,300,,130,,Kindwin,2000,120º / 120º,≤1000Hz,3 in 1 SMD,IP65,No,N/A,BNC Coax,Kindwin,No,AC110/240V - 50/60Hz, -20ºC - +50ºC,,,100,10
+Black Quartz 6.2,ROE,BQ6,6.2,1000,500,500,82,17.8,9.8,160,80,450,230,225,115,Megapixel,5000,110º / 160º,3840,SMD1921 Black Common Cathode,IP65,Concave 10° ~ Convex 10°,"CE, ETL, FCC",Neutrik EtherCON,Neutrik True1,Yes,AC110/240V - 50/60Hz, -20ºC - +50ºC,,,35,8
+Black Quartz 4.6,ROE,BQ4,4.6,1000,500,500,82,17.8,9.8,216,108,370,190,185,85,Megapixel,5000,110º / 160º,3840,SMD1921 Black Common Anode,IP65,Concave 10° ~ Convex 10°,"CE, ETL, FCC",Neutrik EtherCON,Neutrik True1,Yes,AC110/240V - 50/60Hz, -20ºC - +50ºC,,,26,10
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

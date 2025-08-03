@@ -5,9 +5,6 @@ import 'services/led_service.dart';
 import 'services/led_calculation_service.dart';
 import 'models/led_model.dart';
 import 'models/surface_model.dart';
-import 'widgets/add_led_dialog_new.dart';
-import 'widgets/led_list_dialog.dart';
-import 'widgets/led_summary_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,7 +60,7 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
       TransformationController();
   double _currentZoom = 1.0;
 
-  List<LEDModel> _searchResults = [];
+  final List<LEDModel> _searchResults = [];
   bool _showSuggestions = false;
   LEDModel? _selectedLED;
   LEDCalculationResult? _calculationResult;

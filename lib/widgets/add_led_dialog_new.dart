@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import '../models/led_model.dart';
 import '../services/led_service.dart';
 
-class AddLEDDialog extends StatefulWidget {
+// Define the new button background color as per style guide
+const Color buttonBackgroundColor = Color.fromRGBO(247, 238, 221, 1.0);
+
+// Define the new button text color as per style guide (30% darker)
+const Color buttonTextColor = Color.fromRGBO(125, 117, 103, 1.0);
+
+class AddLEDDialogNew extends StatefulWidget {
   final LEDModel? existingLED;
-  const AddLEDDialog({super.key, this.existingLED});
+  const AddLEDDialogNew({super.key, this.existingLED});
 
   @override
-  State<AddLEDDialog> createState() => _AddLEDDialogState();
+  State<AddLEDDialogNew> createState() => _AddLEDDialogNewState();
 }
 
-class _AddLEDDialogState extends State<AddLEDDialog> {
+class _AddLEDDialogNewState extends State<AddLEDDialogNew> {
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
 
@@ -59,6 +65,8 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
   final _processingController = TextEditingController();
   final _panelsPerPortController = TextEditingController();
   final _panelsPer16AController = TextEditingController();
+  final _caseVolumeController = TextEditingController();
+  final _panelsPerCaseController = TextEditingController();
 
   // Other
   final _supplierController = TextEditingController();
@@ -145,6 +153,12 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
     _panelsPer16AController.text = led.panelsPer16A > 0
         ? led.panelsPer16A.toString()
         : '';
+    _caseVolumeController.text = led.caseVolume > 0
+        ? led.caseVolume.toString()
+        : '';
+    _panelsPerCaseController.text = led.panelsPerCase > 0
+        ? led.panelsPerCase.toString()
+        : '';
 
     // Other
     _supplierController.text = led.supplier;
@@ -197,6 +211,8 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
     _processingController.dispose();
     _panelsPerPortController.dispose();
     _panelsPer16AController.dispose();
+    _caseVolumeController.dispose();
+    _panelsPerCaseController.dispose();
 
     // Other
     _supplierController.dispose();
@@ -280,6 +296,8 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
         operatingTemp: _getString(_operatingTempController.text),
         panelsPerPort: _parseInt(_panelsPerPortController.text),
         panelsPer16A: _parseInt(_panelsPer16AController.text),
+        caseVolume: _parseDouble(_caseVolumeController.text),
+        panelsPerCase: _parseInt(_panelsPerCaseController.text),
         dateAdded: widget.existingLED?.dateAdded ?? DateTime.now(),
       );
 
@@ -291,16 +309,7 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
 
       if (mounted) {
         Navigator.of(context).pop(true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.existingLED != null
-                  ? 'LED "${led.name}" updated successfully!'
-                  : 'LED "${led.name}" added successfully!',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Removed success notification - keep only error notifications
       }
     } catch (e) {
       if (mounted) {
@@ -321,6 +330,9 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey[800]
+          : const Color(0xFFF7F6F3),
       child: Container(
         width: 1000,
         height: 700,
@@ -565,6 +577,18 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
                                     _curveCapabilityController,
                                     isRequired: false,
                                   ),
+                                  _buildTextField(
+                                    'Case Volume',
+                                    _caseVolumeController,
+                                    isNumber: true,
+                                    isRequired: false,
+                                  ),
+                                  _buildTextField(
+                                    'Panels per Case',
+                                    _panelsPerCaseController,
+                                    isNumber: true,
+                                    isRequired: false,
+                                  ),
                                 ],
                               ),
                             ),
@@ -721,14 +745,15 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(foregroundColor: buttonTextColor),
                   child: const Text('Cancel'),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: _saveLED,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
+                    backgroundColor: buttonBackgroundColor,
+                    foregroundColor: buttonTextColor,
                   ),
                   child: Text(
                     widget.existingLED != null ? 'Update LED' : 'Add LED',

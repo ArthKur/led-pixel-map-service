@@ -38,6 +38,22 @@ dependencies:
   # Local storage for LED data
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  
+  # PDF generation
+  pdf: ^3.10.8
+  
+  # CSV generation (for Excel compatibility)
+  csv: ^6.0.0
+  
+  # Responsive layout packages
+  responsive_builder: ^0.7.1
+  sizer: ^2.0.15
+  
+  # Cross-platform file handling
+  file_picker: ^8.0.0+1
+  path_provider: ^2.1.4
+  share_plus: ^10.1.0
+  universal_html: ^2.2.4
 
 dev_dependencies:
   flutter_test:
@@ -66,9 +82,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/led_specs.csv
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

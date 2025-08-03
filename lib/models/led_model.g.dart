@@ -53,13 +53,15 @@ class LEDModelAdapter extends TypeAdapter<LEDModel> {
       dateAdded: fields[30] as DateTime,
       panelsPerPort: fields[34] as int,
       panelsPer16A: fields[35] as int,
+      caseVolume: fields[36] as double,
+      panelsPerCase: fields[37] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, LEDModel obj) {
     writer
-      ..writeByte(36)
+      ..writeByte(38)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -131,7 +133,11 @@ class LEDModelAdapter extends TypeAdapter<LEDModel> {
       ..writeByte(34)
       ..write(obj.panelsPerPort)
       ..writeByte(35)
-      ..write(obj.panelsPer16A);
+      ..write(obj.panelsPer16A)
+      ..writeByte(36)
+      ..write(obj.caseVolume)
+      ..writeByte(37)
+      ..write(obj.panelsPerCase);
   }
 
   @override

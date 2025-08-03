@@ -4,7 +4,6 @@ import 'dart:async';
 import 'services/led_service.dart';
 import 'models/led_model.dart';
 import 'models/surface_model.dart';
-import 'services/led_calculation_service.dart';
 import 'widgets/add_led_dialog_new.dart';
 import 'widgets/led_list_dialog.dart';
 import 'widgets/led_summary_widget.dart';
@@ -54,7 +53,7 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
   LEDModel? _selectedLED;
 
   // Multi-surface support
-  List<Surface> _surfaces = [];
+  final List<Surface> _surfaces = [];
   int _activeSurfaceIndex = 0;
 
   // UI state

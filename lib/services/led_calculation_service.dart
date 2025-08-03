@@ -31,6 +31,8 @@ class LEDCalculationResult {
   final int metersHeight;
   final int panelsWidth;
   final int panelsHeight;
+  final int fullPanelsHeight;  // Number of full panel rows
+  final int halfPanelsHeight;  // Number of half panel rows
   final int pixelsWidth;
   final int pixelsHeight;
 
@@ -90,6 +92,8 @@ class LEDCalculationResult {
     required this.metersHeight,
     required this.panelsWidth,
     required this.panelsHeight,
+    required this.fullPanelsHeight,
+    required this.halfPanelsHeight,
     required this.pixelsWidth,
     required this.pixelsHeight,
     required this.maxAmps1Phase,
@@ -127,41 +131,76 @@ class LEDCalculationService {
   ) {
     // Basic calculations
     final double panelWidthMeters = led.width / 1000; // Convert mm to m
-    final double panelHeightMeters = led.fullHeight / 1000; // Convert mm to m
+    final double fullPanelHeightMeters = led.fullHeight / 1000; // Convert mm to m
+    final double halfPanelHeightMeters = led.halfHeight / 1000; // Convert mm to m
 
+    // Calculate panels for width (only full panels)
     final int panelsWidth = (widthMeters / panelWidthMeters).ceil();
-    final int panelsHeight = (heightMeters / panelHeightMeters).ceil();
-    final int totalFullPanels = panelsWidth * panelsHeight;
-    final int totalHalfPanels = 0; // Simplified for now
-
+    
+    // Calculate panels for height with half panel optimization
+    final double remainingHeight = heightMeters;
+    int fullPanelsHeight = 0;
+    int halfPanelsHeight = 0;
+    double currentHeight = 0.0;
+    
+    // Algorithm: Try to fit full panels first, then use half panels for remaining space
+    while (currentHeight < remainingHeight) {
+      double remainingSpace = remainingHeight - currentHeight;
+      
+      // If we can fit a full panel
+      if (remainingSpace >= fullPanelHeightMeters) {
+        fullPanelsHeight++;
+        currentHeight += fullPanelHeightMeters;
+      }
+      // If we can fit a half panel and it gets us closer to target
+      else if (remainingSpace >= halfPanelHeightMeters && 
+               remainingSpace < fullPanelHeightMeters) {
+        halfPanelsHeight++;
+        currentHeight += halfPanelHeightMeters;
+      }
+      // If remaining space is too small for even a half panel, add a half panel to reach target
+      else {
+        halfPanelsHeight++;
+        break;
+      }
+    }
+    
+    // Total panels calculation
+    final int totalFullPanels = panelsWidth * fullPanelsHeight;
+    final int totalHalfPanels = panelsWidth * halfPanelsHeight;
+    
+    // Actual screen dimensions achieved
     final double actualWidthMeters = panelsWidth * panelWidthMeters;
-    final double actualHeightMeters = panelsHeight * panelHeightMeters;
-    final double sqm =
-        widthMeters * heightMeters; // Based on requested screen size
+    final double actualHeightMeters = (fullPanelsHeight * fullPanelHeightMeters) + 
+                                      (halfPanelsHeight * halfPanelHeightMeters);
+    final double sqm = actualWidthMeters * actualHeightMeters; // Based on actual achieved screen size
 
+    // Pixel calculations
     final int pixelsWidth = panelsWidth * led.wPixel;
-    final int pixelsHeight = panelsHeight * led.hPixel;
+    final int fullPixelsHeight = fullPanelsHeight * led.hPixel;
+    final int halfPixelsHeight = halfPanelsHeight * (led.halfHPixel > 0 ? led.halfHPixel : led.hPixel ~/ 2);
+    final int pixelsHeight = fullPixelsHeight + halfPixelsHeight;
     final int totalPx = pixelsWidth * pixelsHeight;
 
-    // Weight calculations
-    final double panelWeight = led.fullPanelWeight;
-    final double screenWeight =
-        (totalFullPanels + totalHalfPanels) *
-        panelWeight; // Total panels × panel weight
+    // Weight calculations (accounting for different panel weights)
+    final double fullPanelWeight = led.fullPanelWeight;
+    final double halfPanelWeight = led.halfPanelWeight > 0 ? led.halfPanelWeight : led.fullPanelWeight * 0.5;
+    final double screenWeight = (totalFullPanels * fullPanelWeight) + (totalHalfPanels * halfPanelWeight);
     final double cableWeight = (screenWeight * 0.1); // 10% rule
-    final double riggingAllowance =
-        (screenWeight + cableWeight) * 0.2; // 20% rule
-    final double totalCalculatedWeight =
-        screenWeight + cableWeight + riggingAllowance;
+    final double riggingAllowance = (screenWeight + cableWeight) * 0.2; // 20% rule
+    final double totalCalculatedWeight = screenWeight + cableWeight + riggingAllowance;
 
     // Approximate weight calculation: total panels × panel weight + 10%
-    final double approxWeightCalc = (totalFullPanels * panelWeight) * 1.1;
+    final double approxWeightCalc = screenWeight * 1.1;
 
-    // Power calculations
-    final double maxPowerPerPanel = led.fullPanelMaxW;
-    final double avgPowerPerPanel = led.fullPanelAvgW;
-    final double totalMaxPower = (totalFullPanels * maxPowerPerPanel) / 400;
-    final double totalAvgPower = (totalFullPanels * avgPowerPerPanel) / 400;
+    // Power calculations (accounting for different panel power consumption)
+    final double fullPanelMaxW = led.fullPanelMaxW;
+    final double halfPanelMaxW = led.halfPanelMaxW > 0 ? led.halfPanelMaxW : led.fullPanelMaxW * 0.5;
+    final double fullPanelAvgW = led.fullPanelAvgW;
+    final double halfPanelAvgW = led.halfPanelAvgW > 0 ? led.halfPanelAvgW : led.fullPanelAvgW * 0.5;
+    
+    final double totalMaxPower = (totalFullPanels * fullPanelMaxW) + (totalHalfPanels * halfPanelMaxW);
+    final double totalAvgPower = (totalFullPanels * fullPanelAvgW) + (totalHalfPanels * halfPanelAvgW);
     final double totalKW = totalMaxPower / 1000;
 
     // Electrical calculations (assuming 230V)
@@ -173,8 +212,8 @@ class LEDCalculationService {
 
     // Pixel spacing calculation - show total pixel resolution as W x H
     final int totalPixelsWidth = panelsWidth * led.wPixel;
-    final int totalPixelsHeight = panelsHeight * led.hPixel;
-    final String pixelSpace = '${totalPixelsWidth} x ${totalPixelsHeight}';
+    final int totalPixelsHeight = pixelsHeight; // Already calculated above
+    final String pixelSpace = '$totalPixelsWidth x $totalPixelsHeight';
 
     // Aspect ratio calculation
     final double aspectRatio = actualWidthMeters / actualHeightMeters;
@@ -240,7 +279,9 @@ class LEDCalculationService {
       metersWidth: actualWidthMeters.round(),
       metersHeight: actualHeightMeters.round(),
       panelsWidth: panelsWidth,
-      panelsHeight: panelsHeight,
+      panelsHeight: fullPanelsHeight + halfPanelsHeight, // Total panel height count
+      fullPanelsHeight: fullPanelsHeight,
+      halfPanelsHeight: halfPanelsHeight,
       pixelsWidth: pixelsWidth,
       pixelsHeight: pixelsHeight,
       maxAmps1Phase: maxAmps1Phase,

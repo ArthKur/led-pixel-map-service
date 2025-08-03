@@ -2,13 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'services/led_service.dart';
 import 'models/led_model.dart';
+import 'models/surface_model.dart'; // Added Surface model import
 import 'widgets/add_led_dialog_new.dart';
 import 'widgets/led_list_dialog.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await LEDService.init();
-  runApp(const LEDCalculatorApp());
+// Add extension to Surface class to provide additional properties
+extension SurfaceExtension on Surface {
+  double? get area => width != null && height != null ? width! * height! : null;
+
+  String? get resolution => selectedLED != null && calculation != null
+      ? "${calculation!.pixelsWidth} × ${calculation!.pixelsHeight}"
+      : null;
+
+  int? get totalPanels => calculation != null
+      ? calculation!.totalFullPanels + calculation!.totalHalfPanels
+      : null;
+
+  int? get fullPanels =>
+      calculation?.totalFullPanels;
+
+  int? get halfPanels =>
+      calculation?.totalHalfPanels;
+
+  double? get totalPowerAvg =>
+      calculation?.avgPower;
+
+  double? get totalPowerMax =>
+      calculation?.maxPower;
+
+  double? get totalWeight =>
+      calculation?.totalWeight;
 }
 
 class LEDCalculatorApp extends StatelessWidget {
@@ -38,22 +61,78 @@ class FullScreenHomePage extends StatefulWidget {
 
 class _FullScreenHomePageState extends State<FullScreenHomePage> {
   final _searchController = TextEditingController();
+  final _widthController = TextEditingController();
+  final _heightController = TextEditingController();
+  final _nameController = TextEditingController();
+
   List<LEDModel> _searchResults = [];
   bool _showSuggestions = false;
   LEDModel? _selectedLED;
+
+  // Multi-surface support
+  final List<Surface> _surfaces = [];
+  int _activeSurfaceIndex = 0;
+
+  // UI state for checkboxes
+  bool _isStacked = false;
+  bool _isRigged = false;
 
   @override
   void initState() {
     super.initState();
     _enableFullScreen();
+    LEDService.addAbsenProducts(); // Ensure we have some sample products
+    _addSurface(); // Add an initial surface
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _widthController.dispose();
+    _heightController.dispose();
+    _nameController.dispose();
     // Restore system UI when disposing
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  // Surface management methods
+  void _addSurface() {
+    setState(() {
+      final newSurface = Surface(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: 'New Surface',
+      );
+      _surfaces.add(newSurface);
+      _activeSurfaceIndex = _surfaces.length - 1;
+      _updateControllersFromActiveSurface();
+    });
+  }
+
+  void _updateControllersFromActiveSurface() {
+    if (_surfaces.isNotEmpty && _activeSurfaceIndex < _surfaces.length) {
+      final surface = _surfaces[_activeSurfaceIndex];
+      _nameController.text = surface.name;
+      _widthController.text = surface.width?.toString() ?? '';
+      _heightController.text = surface.height?.toString() ?? '';
+      _searchController.text = surface.selectedLED?.name ?? '';
+      _selectedLED = surface.selectedLED;
+      _isStacked = surface.isStacked;
+      _isRigged = surface.isRigged;
+    }
+  }
+
+  void _updateActiveSurfaceFromControllers() {
+    if (_surfaces.isNotEmpty && _activeSurfaceIndex < _surfaces.length) {
+      final surface = _surfaces[_activeSurfaceIndex];
+      surface.name = _nameController.text;
+      surface.width = double.tryParse(_widthController.text);
+      surface.height = double.tryParse(_heightController.text);
+      surface.selectedLED = _selectedLED;
+      surface.isStacked = _isStacked;
+      surface.isRigged = _isRigged;
+      surface.updateCalculation();
+    }
   }
 
   void _enableFullScreen() {
@@ -68,6 +147,112 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+  }
+
+  // Helper method for creating info rows in the Calculation Box
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+        ],
+      ),
+    );
+  }
+
+  // Calculation helper methods
+  String _calculatePanelsWide() {
+    if (_surfaces.isEmpty ||
+        _activeSurfaceIndex >= _surfaces.length ||
+        _surfaces[_activeSurfaceIndex].width == null ||
+        _surfaces[_activeSurfaceIndex].selectedLED == null) {
+      return "N/A";
+    }
+
+    final width = _surfaces[_activeSurfaceIndex].width!;
+    final ledWidth =
+        _surfaces[_activeSurfaceIndex].selectedLED!.width /
+        1000; // Convert to meters
+    return (width / ledWidth).ceil().toString();
+  }
+
+  String _calculatePanelsHigh() {
+    if (_surfaces.isEmpty ||
+        _activeSurfaceIndex >= _surfaces.length ||
+        _surfaces[_activeSurfaceIndex].height == null ||
+        _surfaces[_activeSurfaceIndex].selectedLED == null) {
+      return "N/A";
+    }
+
+    final height = _surfaces[_activeSurfaceIndex].height!;
+    final ledHeight =
+        _surfaces[_activeSurfaceIndex].selectedLED!.fullHeight /
+        1000; // Convert to meters
+    return (height / ledHeight).ceil().toString();
+  }
+
+  String _calculateTotalPanels() {
+    if (_surfaces.isEmpty ||
+        _activeSurfaceIndex >= _surfaces.length ||
+        _surfaces[_activeSurfaceIndex].width == null ||
+        _surfaces[_activeSurfaceIndex].height == null ||
+        _surfaces[_activeSurfaceIndex].selectedLED == null) {
+      return "N/A";
+    }
+
+    final panelsWide = int.tryParse(_calculatePanelsWide()) ?? 0;
+    final panelsHigh = int.tryParse(_calculatePanelsHigh()) ?? 0;
+    return (panelsWide * panelsHigh).toString();
+  }
+
+  String _calculatePowerAvg() {
+    if (_surfaces.isEmpty ||
+        _activeSurfaceIndex >= _surfaces.length ||
+        _surfaces[_activeSurfaceIndex].selectedLED == null) {
+      return "N/A";
+    }
+
+    final totalPanels = int.tryParse(_calculateTotalPanels()) ?? 0;
+    final avgPower = _surfaces[_activeSurfaceIndex].selectedLED!.fullPanelAvgW;
+    return (totalPanels * avgPower).toString();
+  }
+
+  String _calculatePowerMax() {
+    if (_surfaces.isEmpty ||
+        _activeSurfaceIndex >= _surfaces.length ||
+        _surfaces[_activeSurfaceIndex].selectedLED == null) {
+      return "N/A";
+    }
+
+    final totalPanels = int.tryParse(_calculateTotalPanels()) ?? 0;
+    final maxPower = _surfaces[_activeSurfaceIndex].selectedLED!.fullPanelMaxW;
+    return (totalPanels * maxPower).toString();
+  }
+
+  String _calculateWeight() {
+    if (_surfaces.isEmpty ||
+        _activeSurfaceIndex >= _surfaces.length ||
+        _surfaces[_activeSurfaceIndex].selectedLED == null) {
+      return "N/A";
+    }
+
+    final totalPanels = int.tryParse(_calculateTotalPanels()) ?? 0;
+    final panelWeight =
+        _surfaces[_activeSurfaceIndex].selectedLED!.fullPanelWeight;
+    return (totalPanels * panelWeight).toString();
   }
 
   Widget _buildSectionHeader(String title) {
@@ -214,6 +399,14 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
                                   setState(() {
                                     _showSuggestions = false;
                                     _selectedLED = led;
+                                    if (_surfaces.isNotEmpty &&
+                                        _activeSurfaceIndex <
+                                            _surfaces.length) {
+                                      _surfaces[_activeSurfaceIndex]
+                                              .selectedLED =
+                                          led;
+                                      _updateActiveSurfaceFromControllers();
+                                    }
                                   });
                                 },
                                 child: Container(
@@ -271,13 +464,17 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: Colors.grey[400]!),
                             ),
-                            child: const TextField(
-                              decoration: InputDecoration(
+                            child: TextField(
+                              controller: _widthController,
+                              decoration: const InputDecoration(
                                 hintText: 'Width (m)',
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.all(12),
                               ),
                               keyboardType: TextInputType.number,
+                              onChanged: (value) {
+                                _updateActiveSurfaceFromControllers();
+                              },
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -288,14 +485,70 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: Colors.grey[400]!),
                             ),
-                            child: const TextField(
-                              decoration: InputDecoration(
+                            child: TextField(
+                              controller: _heightController,
+                              decoration: const InputDecoration(
                                 hintText: 'Height (m)',
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.all(12),
                               ),
                               keyboardType: TextInputType.number,
+                              onChanged: (value) {
+                                _updateActiveSurfaceFromControllers();
+                              },
                             ),
+                          ),
+                        ],
+                      ),
+
+                      // Surface name input and checkboxes
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Container(
+                            width: 200,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[400]!),
+                            ),
+                            child: TextField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                hintText: 'Surface Name',
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.all(12),
+                              ),
+                              onChanged: (value) {
+                                _updateActiveSurfaceFromControllers();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _isStacked,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _isStacked = value ?? false;
+                                    _updateActiveSurfaceFromControllers();
+                                  });
+                                },
+                              ),
+                              const Text('Stacked'),
+                              const SizedBox(width: 10),
+                              Checkbox(
+                                value: _isRigged,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _isRigged = value ?? false;
+                                    _updateActiveSurfaceFromControllers();
+                                  });
+                                },
+                              ),
+                              const Text('Rigged'),
+                            ],
                           ),
                         ],
                       ),
@@ -686,10 +939,143 @@ class _FullScreenHomePageState extends State<FullScreenHomePage> {
                     ],
                   ),
                 ),
+                // Surface Calculation Box
+                Positioned(
+                  bottom: 440,
+                  left: 20,
+                  child: Container(
+                    width: 750,
+                    height: 400,
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.amber, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          spreadRadius: 1,
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Surface Calculation',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Left column - Panel info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    calcInfoRow(
+                                      'Dimensions',
+                                      '${_widthController.text} m × ${_heightController.text} m',
+                                    ),
+                                    calcInfoRow(
+                                      'Area',
+                                      '${_surfaces.isNotEmpty ? (_surfaces[_activeSurfaceIndex].area?.toStringAsFixed(2) ?? "0.00") : "0.00"} m²',
+                                    ),
+                                    calcInfoRow(
+                                      'Panels Wide × High',
+                                      '${_surfaces.isNotEmpty && _surfaces[_activeSurfaceIndex].calculation != null ? _surfaces[_activeSurfaceIndex].calculation!.panelsWidth : 0} × ${_surfaces.isNotEmpty && _surfaces[_activeSurfaceIndex].calculation != null ? _surfaces[_activeSurfaceIndex].calculation!.panelsHeight : 0}',
+                                    ),
+                                    calcInfoRow(
+                                      'Total Panels',
+                                      '${_surfaces.isNotEmpty ? (_surfaces[_activeSurfaceIndex].totalPanels ?? 0) : 0}',
+                                    ),
+                                    calcInfoRow(
+                                      'Panel Resolution',
+                                      '${_selectedLED?.wPixel ?? 0} × ${_selectedLED?.hPixel ?? 0} px',
+                                    ),
+                                    calcInfoRow(
+                                      'Total Resolution',
+                                      '${_surfaces.isNotEmpty && _surfaces[_activeSurfaceIndex].calculation != null ? _surfaces[_activeSurfaceIndex].calculation!.pixelsWidth : 0} × ${_surfaces.isNotEmpty && _surfaces[_activeSurfaceIndex].calculation != null ? _surfaces[_activeSurfaceIndex].calculation!.pixelsHeight : 0} px',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              // Right column - Power and weight
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    calcInfoRow(
+                                      'Max Power',
+                                      '${_surfaces.isNotEmpty ? (_surfaces[_activeSurfaceIndex].totalPowerMax?.toStringAsFixed(2) ?? "0.00") : "0.00"} kW',
+                                    ),
+                                    calcInfoRow(
+                                      'Avg Power',
+                                      '${_surfaces.isNotEmpty ? (_surfaces[_activeSurfaceIndex].totalPowerAvg?.toStringAsFixed(2) ?? "0.00") : "0.00"} kW',
+                                    ),
+                                    calcInfoRow(
+                                      'Panel Weight',
+                                      '${_selectedLED?.fullPanelWeight ?? 0} kg',
+                                    ),
+                                    calcInfoRow(
+                                      'Total Weight',
+                                      '${_surfaces.isNotEmpty ? (_surfaces[_activeSurfaceIndex].totalWeight?.toStringAsFixed(1) ?? "0.0") : "0.0"} kg',
+                                    ),
+                                    calcInfoRow(
+                                      'Pixel Pitch',
+                                      '${_selectedLED?.pitch ?? 0} mm',
+                                    ),
+                                    calcInfoRow(
+                                      'Total Pixels',
+                                      '${_surfaces.isNotEmpty && _surfaces[_activeSurfaceIndex].calculation != null ? _surfaces[_activeSurfaceIndex].calculation!.totalPx : 0}',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // Helper widget for calculation box info rows
+  Widget calcInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 14, color: Colors.black),
+          ),
+        ],
       ),
     );
   }

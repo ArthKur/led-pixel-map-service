@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import '../models/led_model.dart';
 import '../services/led_service.dart';
 
+// Define the new button background color as per style guide
+const Color buttonBackgroundColor = Color.fromRGBO(247, 238, 221, 1.0);
+
+// Define the new button text color as per style guide
+const Color buttonTextColor = Color.fromRGBO(178, 167, 147, 1.0);
+
+// Text colors as per style guide
+const Color textColorPrimary = Color(0xFF383838); // Deep neutral gray for most text
+const Color textColorSecondary = Color(0xFFA2A09A); // Light gray for secondary/disabled text
+
 class AddLEDDialog extends StatefulWidget {
   final LEDModel? existingLED;
   const AddLEDDialog({super.key, this.existingLED});
@@ -280,6 +290,9 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey[800]
+          : const Color(0xFFF7F6F3),
       child: Container(
         width: 500, // Reduced width for single column layout
         height: 650,
@@ -465,11 +478,12 @@ class _AddLEDDialogState extends State<AddLEDDialog> {
                 ElevatedButton(
                   onPressed: _saveLED,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
+                    backgroundColor: buttonBackgroundColor,
+                    foregroundColor: buttonTextColor,
                   ),
                   child: Text(
                     widget.existingLED != null ? 'Update LED' : 'Add LED',
+                    style: const TextStyle(color: buttonTextColor),
                   ),
                 ),
               ],

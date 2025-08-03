@@ -87,27 +87,27 @@ class LEDSummaryWidget extends StatelessWidget {
                         _buildSection('Electrical', [
                           _buildDataRow(
                             'Max Amps @1Phase',
-                            '${(calculation.maxPower * 3).toStringAsFixed(0)}',
+                            (calculation.maxPower * 3).toStringAsFixed(0),
                           ),
                           _buildDataRow(
                             'Max Amps @3Phase',
-                            '${calculation.maxPower.toStringAsFixed(0)}',
+                            calculation.maxPower.toStringAsFixed(0),
                           ),
                           _buildDataRow(
                             'Avg Amps @1Phase',
-                            '${(calculation.avgPower * 3).toStringAsFixed(0)}',
+                            (calculation.avgPower * 3).toStringAsFixed(0),
                           ),
                           _buildDataRow(
                             'Avg Amps @3Phase',
-                            '${calculation.avgPower.toStringAsFixed(0)}',
+                            calculation.avgPower.toStringAsFixed(0),
                           ),
                           _buildDataRow(
                             'Total kW',
-                            '${((calculation.maxPower * 3) * 230 / 1000).toStringAsFixed(2)}',
+                            ((calculation.maxPower * 3) * 230 / 1000).toStringAsFixed(2),
                           ),
                           _buildDataRow(
                             'kW/hr',
-                            '${((230 * (calculation.maxPower * 3) / 0.85) / 1000).toStringAsFixed(1)}',
+                            ((230 * (calculation.maxPower * 3) / 0.85) / 1000).toStringAsFixed(1),
                           ),
                           _buildDataRow(
                             'Distro',
@@ -220,11 +220,11 @@ class LEDSummaryWidget extends StatelessWidget {
                         _buildSection('Totals', [
                           _buildDataRow(
                             'SQM - m²',
-                            '${calculation.sqm.toStringAsFixed(1)}',
+                            calculation.sqm.toStringAsFixed(1),
                           ),
                           _buildDataRow(
                             'Weight - kg',
-                            '${calculation.totalWeight.toStringAsFixed(0)}',
+                            calculation.totalWeight.toStringAsFixed(0),
                           ),
                           _buildDataRow(
                             'Total Full Panels',
@@ -236,7 +236,7 @@ class LEDSummaryWidget extends StatelessWidget {
                           ),
                           _buildDataRow(
                             'Total pix',
-                            '${calculation.totalPx.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                            calculation.totalPx.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
                           ),
                           _buildDataRow(
                             '',
@@ -310,19 +310,19 @@ class LEDSummaryWidget extends StatelessWidget {
                         _buildSection('Weights', [
                           _buildDataRow(
                             'Screen Weight',
-                            '${calculation.screenWeight.toStringAsFixed(0)}',
+                            calculation.screenWeight.toStringAsFixed(0),
                           ),
                           _buildDataRow(
                             'Cable Weight (10%)',
-                            '${calculation.cableWeight.toStringAsFixed(0)}',
+                            calculation.cableWeight.toStringAsFixed(0),
                           ),
                           _buildDataRow(
                             'Rigging Allowance (20%)',
-                            '${calculation.riggingAllowance.toStringAsFixed(0)}',
+                            calculation.riggingAllowance.toStringAsFixed(0),
                           ),
                           _buildDataRow(
                             'Total',
-                            '${calculation.totalCalculatedWeight.toStringAsFixed(0)}',
+                            calculation.totalCalculatedWeight.toStringAsFixed(0),
                           ),
                           _buildDataRow(
                             '',

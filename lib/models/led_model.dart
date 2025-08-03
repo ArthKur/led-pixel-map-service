@@ -112,6 +112,12 @@ class LEDModel extends HiveObject {
   @HiveField(35)
   int panelsPer16A;
 
+  @HiveField(36)
+  double caseVolume;
+
+  @HiveField(37)
+  int panelsPerCase;
+
   LEDModel({
     required this.name,
     required this.manufacturer,
@@ -149,6 +155,8 @@ class LEDModel extends HiveObject {
     required this.dateAdded,
     this.panelsPerPort = 0,
     this.panelsPer16A = 0,
+    this.caseVolume = 0.0,
+    this.panelsPerCase = 0,
   });
 
   @override
