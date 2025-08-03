@@ -27,9 +27,9 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '8.3 - Fixed: Thin Lines, Always Show Panel Numbers, 20% Transparency',
-        'message': 'Service with guaranteed panel numbers, thin 1px grid lines, and 20% text transparency',
-        'timestamp': '2025-08-04-03:30'
+        'version': '9.0 - Clean Design: No Transparency, Smaller Panel Numbers, Perfect 1px Grid',
+        'message': 'Clean pixel maps with smaller panel numbers, precise grid lines, no transparency',
+        'timestamp': '2025-08-04-04:00'
     })
 
 @app.route('/test')
@@ -74,48 +74,36 @@ def generate_pixel_map():
         panel_display_width = int(panel_pixel_width / scale_factor)
         panel_display_height = int(panel_pixel_height / scale_factor)
         
-        # Create clean image with ONLY panels (no black top area)
-        image = Image.new('RGB', (display_width, display_height), color='black')
+                # Create Image with white background
+        image = Image.new('RGB', (display_width, display_height), 'white')
         draw = ImageDraw.Draw(image)
         
-        # Calculate proper font sizes based on screen dimensions (not panel size)
-        title_font_size = max(20, int(display_height * 0.20))    # 20% of screen height
-        info_font_size = max(12, int(display_height * 0.05))     # 5% of screen height  
-        panel_font_size = max(8, min(20, int(panel_display_width * 0.15)))  # 15% of panel width
+        # Calculate font sizes - smaller panel numbers, no transparency texts
+        panel_font_size = max(8, int(min(panel_display_width, panel_display_height) * 0.1))  # 10% of panel size (50% smaller)
         
-        # Try to load fonts with calculated sizes - use truetype for sharp rendering
+        # Load TrueType fonts for sharp quality - only need panel font now
+        panel_font = None
         try:
-            # Try to load system fonts for better quality
             import platform
             system = platform.system()
             
             if system == "Darwin":  # macOS
-                title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", title_font_size)
-                info_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", info_font_size)
-                panel_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", panel_font_size)
-            elif system == "Linux":  # Linux/Render.com
-                # Try common Linux font paths
+                panel_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttf", panel_font_size)
+            elif system == "Linux":  # Linux (Render.com)
                 try:
-                    title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", title_font_size)
-                    info_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", info_font_size)
-                    panel_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", panel_font_size)
+                    panel_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", panel_font_size)
                 except:
-                    # Fallback to other common paths
-                    title_font = ImageFont.truetype("/usr/share/fonts/TTF/arial.ttf", title_font_size)
-                    info_font = ImageFont.truetype("/usr/share/fonts/TTF/arial.ttf", info_font_size)
-                    panel_font = ImageFont.truetype("/usr/share/fonts/TTF/arial.ttf", panel_font_size)
+                    try:
+                        panel_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", panel_font_size)
+                    except:
+                        panel_font = ImageFont.truetype("/usr/share/fonts/TTF/arial.ttf", panel_font_size)
             else:  # Windows or other
-                title_font = ImageFont.truetype("arial.ttf", title_font_size)
-                info_font = ImageFont.truetype("arial.ttf", info_font_size)
                 panel_font = ImageFont.truetype("arial.ttf", panel_font_size)
         except Exception as e:
-            print(f"Font loading failed: {e}, using default fonts")
-            # Fallback to default fonts but with size hints
-            title_font = ImageFont.load_default()
-            info_font = ImageFont.load_default()
+            print(f"Font loading failed: {e}, using default font")
             panel_font = ImageFont.load_default()
         
-        # Generate panels with thin white borders and colorful fills
+        # Generate panels with precise 1px white grid lines
         for row in range(panels_height):
             for col in range(panels_width):
                 x = col * panel_display_width
@@ -124,75 +112,35 @@ def generate_pixel_map():
                 # Generate color for this panel
                 panel_color = generate_color(col, row)
                 
-                # Draw panel rectangle with thin white border (0.5px effect)
+                # Draw panel rectangle filled with color
                 draw.rectangle([x, y, x + panel_display_width, y + panel_display_height], 
-                             fill=panel_color, outline='white', width=0)  # No border, we'll draw thin lines
+                             fill=panel_color)
                 
-                # Draw thin white grid lines manually for better control
-                if x > 0:  # Vertical line (left edge)
-                    draw.line([(x, y), (x, y + panel_display_height)], fill='white', width=1)
-                if y > 0:  # Horizontal line (top edge)
-                    draw.line([(x, y), (x + panel_display_width, y)], fill='white', width=1)
-                
-                # Draw panel number - ALWAYS show for ALL panels (remove size restrictions)
+                # Draw panel number - smaller size, top-left with margin
                 if show_panel_numbers:
                     panel_number = f"{row + 1}.{col + 1}"
                     
                     # Position in top-left corner with small margin
-                    margin = max(3, int(panel_display_width * 0.08))  # 8% margin from edges
+                    margin = max(4, int(panel_display_width * 0.06))  # 6% margin from edges
                     text_x = x + margin
                     text_y = y + margin
                     
-                    # Always draw panel numbers with white color for visibility
+                    # Draw panel numbers with black color for maximum contrast
                     if panel_font:
-                        draw.text((text_x, text_y), panel_number, fill='white', font=panel_font)
+                        draw.text((text_x, text_y), panel_number, fill='black', font=panel_font)
                     else:
-                        draw.text((text_x, text_y), panel_number, fill='white')
+                        draw.text((text_x, text_y), panel_number, fill='black')
         
-        # Draw right and bottom borders to complete the grid
-        draw.line([(display_width-1, 0), (display_width-1, display_height)], fill='white', width=1)  # Right edge
-        draw.line([(0, display_height-1), (display_width, display_height-1)], fill='white', width=1)  # Bottom edge
+        # Draw precise 1px white grid lines
+        for row in range(panels_height + 1):
+            y = row * panel_display_height
+            if y < display_height:
+                draw.line([(0, y), (display_width, y)], fill='white', width=1)
         
-        # Create semi-transparent overlay for text (20% transparency)
-        # We'll create a separate layer for transparency effects
-        text_overlay = Image.new('RGBA', (display_width, display_height), (0, 0, 0, 0))
-        text_draw = ImageDraw.Draw(text_overlay)
-        
-        # Draw "Screen X" title in CENTER with 20% transparency (text only, no background)
-        title_text = f"Screen {surface_index + 1}"
-        if title_font:
-            try:
-                bbox = text_draw.textbbox((0, 0), title_text, font=title_font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
-                title_x = (display_width - text_width) // 2
-                title_y = (display_height - text_height) // 2
-            except:
-                title_x = display_width // 2 - (title_font_size * 3)
-                title_y = display_height // 2 - (title_font_size // 2)
-            
-            # Draw semi-transparent gold text (20% opacity = 80% visible)
-            text_draw.text((title_x, title_y), title_text, fill=(255, 215, 0, 204), font=title_font)
-        else:
-            # Simple center positioning with transparency
-            title_x = display_width // 2 - 40
-            title_y = display_height // 2 - 10
-            text_draw.text((title_x, title_y), title_text, fill=(255, 215, 0, 204))
-        
-        # Draw info in BOTTOM LEFT corner with 20% transparency (text only, no background)
-        info_text = f"{panels_width}×{panels_height} panels | {total_width}×{total_height}px"
-        info_x = int(display_width * 0.02)  # 2% margin from left
-        info_y = display_height - int(display_height * 0.08)  # 8% margin from bottom
-        
-        if info_font:
-            # Draw semi-transparent white text (20% opacity = 80% visible)
-            text_draw.text((info_x, info_y), info_text, fill=(255, 255, 255, 204), font=info_font)
-        else:
-            # Simple positioning with transparency
-            text_draw.text((info_x, info_y), info_text, fill=(255, 255, 255, 204))
-        
-        # Composite the text overlay onto the main image
-        image = Image.alpha_composite(image.convert('RGBA'), text_overlay).convert('RGB')
+        for col in range(panels_width + 1):
+            x = col * panel_display_width
+            if x < display_width:
+                draw.line([(x, 0), (x, display_height)], fill='white', width=1)
         
         # Convert image to high-quality PNG bytes
         img_buffer = io.BytesIO()
