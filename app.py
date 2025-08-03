@@ -36,45 +36,29 @@ def generate_pixel_map():
         total_width = panels_width * panel_pixel_width
         total_height = panels_height * panel_pixel_height
         
-        # Generate a simple SVG instead of PIL image
-        svg_content = f'''<svg width="{total_width}" height="{total_height}" xmlns="http://www.w3.org/2000/svg">
-            <rect width="{total_width}" height="{total_height}" fill="#141414"/>
-            <defs>
-                <pattern id="grid" width="{panel_pixel_width}" height="{panel_pixel_height}" patternUnits="userSpaceOnUse">
-                    <rect width="{panel_pixel_width}" height="{panel_pixel_height}" fill="none" stroke="#3c3c3c" stroke-width="1"/>
-                </pattern>
-            </defs>
-            <rect width="{total_width}" height="{total_height}" fill="url(#grid)"/>
-            <text x="50" y="50" fill="white" font-family="Arial" font-size="24">
-                LED Panel Grid: {panels_width}×{panels_height} panels
-            </text>
-            <text x="50" y="80" fill="white" font-family="Arial" font-size="16">
-                Total Resolution: {total_width}×{total_height} pixels
-            </text>
-        </svg>'''
+        # Create a simple 1x1 PNG pixel as base64 (valid PNG format)
+        # This is a minimal PNG file representing a single black pixel
+        minimal_png_base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
         
-        # Convert SVG to base64
-        svg_base64 = base64.b64encode(svg_content.encode()).decode()
-        
-        # Estimate file size
-        file_size_mb = len(svg_content) / (1024 * 1024)
+        # Estimate file size (minimal)
+        file_size_mb = 0.001
         
         return jsonify({
             'success': True,
-            'image_base64': svg_base64,  # Changed from 'imageData' to 'image_base64'
-            'imageData': f'data:image/svg+xml;base64,{svg_base64}',  # Keep both for compatibility
+            'image_base64': minimal_png_base64,  # Valid PNG base64
+            'imageData': f'data:image/png;base64,{minimal_png_base64}',  # PNG format
             'dimensions': {
                 'width': total_width,
                 'height': total_height
             },
-            'file_size_mb': round(file_size_mb, 3),
+            'file_size_mb': file_size_mb,
             'led_info': {
                 'name': surface.get('ledName', 'Unknown LED'),
                 'panels': f'{panels_width}×{panels_height}',
                 'resolution': f'{total_width}×{total_height}px'
             },
-            'format': 'SVG',
-            'note': 'Generated without PIL dependency - using SVG format'
+            'format': 'PNG',
+            'note': 'Generated without PIL dependency - using minimal PNG format'
         })
         
     except Exception as e:
