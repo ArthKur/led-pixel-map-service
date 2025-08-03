@@ -27,9 +27,9 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '8.2 - Perfect Text: 50% Transparent, Proper Sizing, Top-Left Panel Numbers',
-        'message': 'Service with screen-proportional text sizing, 50% transparency, and top-left panel numbering',
-        'timestamp': '2025-08-04-03:00'
+        'version': '8.3 - Fixed: Thin Lines, Always Show Panel Numbers, 20% Transparency',
+        'message': 'Service with guaranteed panel numbers, thin 1px grid lines, and 20% text transparency',
+        'timestamp': '2025-08-04-03:30'
     })
 
 @app.route('/test')
@@ -126,29 +126,39 @@ def generate_pixel_map():
                 
                 # Draw panel rectangle with thin white border (0.5px effect)
                 draw.rectangle([x, y, x + panel_display_width, y + panel_display_height], 
-                             fill=panel_color, outline='white', width=1)
+                             fill=panel_color, outline='white', width=0)  # No border, we'll draw thin lines
                 
-                # Draw panel number if enabled - always show in top-left corner with margin
-                if show_panel_numbers and panel_display_width > 20 and panel_display_height > 15:
+                # Draw thin white grid lines manually for better control
+                if x > 0:  # Vertical line (left edge)
+                    draw.line([(x, y), (x, y + panel_display_height)], fill='white', width=1)
+                if y > 0:  # Horizontal line (top edge)
+                    draw.line([(x, y), (x + panel_display_width, y)], fill='white', width=1)
+                
+                # Draw panel number - ALWAYS show for ALL panels (remove size restrictions)
+                if show_panel_numbers:
                     panel_number = f"{row + 1}.{col + 1}"
                     
                     # Position in top-left corner with small margin
-                    margin = max(2, int(panel_display_width * 0.05))  # 5% margin from edges
+                    margin = max(3, int(panel_display_width * 0.08))  # 8% margin from edges
                     text_x = x + margin
                     text_y = y + margin
                     
-                    # Always draw panel numbers for better visibility
+                    # Always draw panel numbers with white color for visibility
                     if panel_font:
                         draw.text((text_x, text_y), panel_number, fill='white', font=panel_font)
                     else:
                         draw.text((text_x, text_y), panel_number, fill='white')
         
-        # Create semi-transparent overlay for text (50% transparency)
+        # Draw right and bottom borders to complete the grid
+        draw.line([(display_width-1, 0), (display_width-1, display_height)], fill='white', width=1)  # Right edge
+        draw.line([(0, display_height-1), (display_width, display_height-1)], fill='white', width=1)  # Bottom edge
+        
+        # Create semi-transparent overlay for text (20% transparency)
         # We'll create a separate layer for transparency effects
         text_overlay = Image.new('RGBA', (display_width, display_height), (0, 0, 0, 0))
         text_draw = ImageDraw.Draw(text_overlay)
         
-        # Draw "Screen X" title in CENTER with 50% transparency (text only, no background)
+        # Draw "Screen X" title in CENTER with 20% transparency (text only, no background)
         title_text = f"Screen {surface_index + 1}"
         if title_font:
             try:
@@ -161,25 +171,25 @@ def generate_pixel_map():
                 title_x = display_width // 2 - (title_font_size * 3)
                 title_y = display_height // 2 - (title_font_size // 2)
             
-            # Draw semi-transparent gold text (50% opacity)
-            text_draw.text((title_x, title_y), title_text, fill=(255, 215, 0, 128), font=title_font)
+            # Draw semi-transparent gold text (20% opacity = 80% visible)
+            text_draw.text((title_x, title_y), title_text, fill=(255, 215, 0, 204), font=title_font)
         else:
             # Simple center positioning with transparency
             title_x = display_width // 2 - 40
             title_y = display_height // 2 - 10
-            text_draw.text((title_x, title_y), title_text, fill=(255, 215, 0, 128))
+            text_draw.text((title_x, title_y), title_text, fill=(255, 215, 0, 204))
         
-        # Draw info in BOTTOM LEFT corner with 50% transparency (text only, no background)
+        # Draw info in BOTTOM LEFT corner with 20% transparency (text only, no background)
         info_text = f"{panels_width}×{panels_height} panels | {total_width}×{total_height}px"
         info_x = int(display_width * 0.02)  # 2% margin from left
         info_y = display_height - int(display_height * 0.08)  # 8% margin from bottom
         
         if info_font:
-            # Draw semi-transparent white text (50% opacity)
-            text_draw.text((info_x, info_y), info_text, fill=(255, 255, 255, 128), font=info_font)
+            # Draw semi-transparent white text (20% opacity = 80% visible)
+            text_draw.text((info_x, info_y), info_text, fill=(255, 255, 255, 204), font=info_font)
         else:
             # Simple positioning with transparency
-            text_draw.text((info_x, info_y), info_text, fill=(255, 255, 255, 128))
+            text_draw.text((info_x, info_y), info_text, fill=(255, 255, 255, 204))
         
         # Composite the text overlay onto the main image
         image = Image.alpha_composite(image.convert('RGBA'), text_overlay).convert('RGB')
