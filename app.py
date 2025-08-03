@@ -27,9 +27,9 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '9.1 - Ultra Quality: Perfect 1px Grid, Crystal Text, Anti-aliasing',
-        'message': 'Ultra high quality with pixel-perfect grid lines and crystal clear text',
-        'timestamp': '2025-08-04-04:15'
+        'version': '9.2 - Fixed: Corrected indentation and rendering issues',
+        'message': 'Working pixel maps with clean grid lines and clear text',
+        'timestamp': '2025-08-04-04:30'
     })
 
 @app.route('/test')
@@ -74,7 +74,7 @@ def generate_pixel_map():
         panel_display_width = int(panel_pixel_width / scale_factor)
         panel_display_height = int(panel_pixel_height / scale_factor)
         
-                # Create Image with white background
+        # Create Image with white background
         image = Image.new('RGB', (display_width, display_height), 'white')
         draw = ImageDraw.Draw(image)
         
@@ -127,10 +127,6 @@ def generate_pixel_map():
             print(f"Font loading error: {e}")
             panel_font = ImageFont.load_default()
         
-        # Create high-quality image with anti-aliasing
-        image = Image.new('RGB', (display_width, display_height), 'white')
-        draw = ImageDraw.Draw(image, 'RGBA')  # Enable anti-aliasing
-        
         # Fill panels first (without borders)
         for row in range(panels_height):
             for col in range(panels_width):
@@ -144,24 +140,18 @@ def generate_pixel_map():
                 draw.rectangle([x, y, x + panel_display_width - 1, y + panel_display_height - 1], 
                              fill=panel_color, outline=None)
         
-        # Draw ultra-precise 1px white grid lines on top
-        # Horizontal lines
+        # Draw simple 1px white grid lines
         for row in range(panels_height + 1):
             y_pos = row * panel_display_height
             if y_pos < display_height:
-                for x in range(display_width):
-                    if y_pos < display_height:
-                        draw.point((x, y_pos), fill='white')
+                draw.line([(0, y_pos), (display_width, y_pos)], fill='white', width=1)
         
-        # Vertical lines  
         for col in range(panels_width + 1):
             x_pos = col * panel_display_width
             if x_pos < display_width:
-                for y in range(display_height):
-                    if x_pos < display_width:
-                        draw.point((x_pos, y), fill='white')
+                draw.line([(x_pos, 0), (x_pos, display_height)], fill='white', width=1)
         
-        # Draw panel numbers with high quality
+        # Draw panel numbers with simple high contrast
         for row in range(panels_height):
             for col in range(panels_width):
                 if show_panel_numbers:
@@ -175,25 +165,16 @@ def generate_pixel_map():
                     text_x = x + margin
                     text_y = y + margin
                     
-                    # Draw with high contrast
+                    # Draw simple black text
                     if panel_font:
-                        # Draw white outline for better visibility
-                        for dx in [-1, 0, 1]:
-                            for dy in [-1, 0, 1]:
-                                if dx != 0 or dy != 0:
-                                    draw.text((text_x + dx, text_y + dy), panel_number, fill='white', font=panel_font)
-                        # Draw black text on top
                         draw.text((text_x, text_y), panel_number, fill='black', font=panel_font)
                     else:
                         draw.text((text_x, text_y), panel_number, fill='black')
         
-        # Convert to RGB and save with maximum quality PNG
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
-            
+        # Convert image to high-quality PNG bytes
         img_buffer = io.BytesIO()
-        # Maximum quality PNG settings - no compression for sharpest text
-        image.save(img_buffer, format='PNG', optimize=False, compress_level=0, pnginfo=None)
+        # Use high quality PNG settings for sharp text
+        image.save(img_buffer, format='PNG', optimize=False, compress_level=1)
         img_buffer.seek(0)
         
         # Get PNG data
