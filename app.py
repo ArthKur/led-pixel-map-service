@@ -11,9 +11,9 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '3.0',
-        'message': 'Service is running without PIL dependency',
-        'timestamp': '2025-08-03-23:45'
+        'version': '3.1',
+        'message': 'Service is running without PIL dependency - Cleaned deployment',
+        'timestamp': '2025-08-04-00:15'
     })
 
 @app.route('/test')
