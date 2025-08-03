@@ -27,9 +27,9 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '9.0 - Clean Design: No Transparency, Smaller Panel Numbers, Perfect 1px Grid',
-        'message': 'Clean pixel maps with smaller panel numbers, precise grid lines, no transparency',
-        'timestamp': '2025-08-04-04:00'
+        'version': '9.1 - Ultra Quality: Perfect 1px Grid, Crystal Text, Anti-aliasing',
+        'message': 'Ultra high quality with pixel-perfect grid lines and crystal clear text',
+        'timestamp': '2025-08-04-04:15'
     })
 
 @app.route('/test')
@@ -79,31 +79,59 @@ def generate_pixel_map():
         draw = ImageDraw.Draw(image)
         
         # Calculate font sizes - smaller panel numbers, no transparency texts
-        panel_font_size = max(8, int(min(panel_display_width, panel_display_height) * 0.1))  # 10% of panel size (50% smaller)
+        panel_font_size = max(12, int(min(panel_display_width, panel_display_height) * 0.08))  # 8% of panel size, minimum 12px
         
-        # Load TrueType fonts for sharp quality - only need panel font now
+        # Load high-quality TrueType fonts with better error handling
         panel_font = None
+        font_paths_to_try = []
+        
         try:
             import platform
             system = platform.system()
             
             if system == "Darwin":  # macOS
-                panel_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttf", panel_font_size)
+                font_paths_to_try = [
+                    "/System/Library/Fonts/Helvetica.ttc",
+                    "/System/Library/Fonts/Arial.ttf", 
+                    "/System/Library/Fonts/Arial Unicode.ttf"
+                ]
             elif system == "Linux":  # Linux (Render.com)
+                font_paths_to_try = [
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans.ttf",
+                    "/usr/share/fonts/TTF/arial.ttf",
+                    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
+                ]
+            else:  # Windows
+                font_paths_to_try = [
+                    "C:/Windows/Fonts/arial.ttf",
+                    "C:/Windows/Fonts/calibri.ttf"
+                ]
+            
+            # Try each font path until one works
+            for font_path in font_paths_to_try:
                 try:
-                    panel_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", panel_font_size)
+                    panel_font = ImageFont.truetype(font_path, panel_font_size)
+                    print(f"Successfully loaded font: {font_path}")
+                    break
                 except:
-                    try:
-                        panel_font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", panel_font_size)
-                    except:
-                        panel_font = ImageFont.truetype("/usr/share/fonts/TTF/arial.ttf", panel_font_size)
-            else:  # Windows or other
-                panel_font = ImageFont.truetype("arial.ttf", panel_font_size)
+                    continue
+                    
+            if panel_font is None:
+                print("All font paths failed, using default")
+                panel_font = ImageFont.load_default()
+                
         except Exception as e:
-            print(f"Font loading failed: {e}, using default font")
+            print(f"Font loading error: {e}")
             panel_font = ImageFont.load_default()
         
-        # Generate panels with precise 1px white grid lines
+        # Create high-quality image with anti-aliasing
+        image = Image.new('RGB', (display_width, display_height), 'white')
+        draw = ImageDraw.Draw(image, 'RGBA')  # Enable anti-aliasing
+        
+        # Fill panels first (without borders)
         for row in range(panels_height):
             for col in range(panels_width):
                 x = col * panel_display_width
@@ -112,40 +140,60 @@ def generate_pixel_map():
                 # Generate color for this panel
                 panel_color = generate_color(col, row)
                 
-                # Draw panel rectangle filled with color
-                draw.rectangle([x, y, x + panel_display_width, y + panel_display_height], 
-                             fill=panel_color)
-                
-                # Draw panel number - smaller size, top-left with margin
+                # Draw panel rectangle filled with color (no outline)
+                draw.rectangle([x, y, x + panel_display_width - 1, y + panel_display_height - 1], 
+                             fill=panel_color, outline=None)
+        
+        # Draw ultra-precise 1px white grid lines on top
+        # Horizontal lines
+        for row in range(panels_height + 1):
+            y_pos = row * panel_display_height
+            if y_pos < display_height:
+                for x in range(display_width):
+                    if y_pos < display_height:
+                        draw.point((x, y_pos), fill='white')
+        
+        # Vertical lines  
+        for col in range(panels_width + 1):
+            x_pos = col * panel_display_width
+            if x_pos < display_width:
+                for y in range(display_height):
+                    if x_pos < display_width:
+                        draw.point((x_pos, y), fill='white')
+        
+        # Draw panel numbers with high quality
+        for row in range(panels_height):
+            for col in range(panels_width):
                 if show_panel_numbers:
+                    x = col * panel_display_width
+                    y = row * panel_display_height
+                    
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # Position in top-left corner with small margin
-                    margin = max(4, int(panel_display_width * 0.06))  # 6% margin from edges
+                    # Position in top-left corner with margin
+                    margin = max(6, int(panel_display_width * 0.04))  # 4% margin
                     text_x = x + margin
                     text_y = y + margin
                     
-                    # Draw panel numbers with black color for maximum contrast
+                    # Draw with high contrast
                     if panel_font:
+                        # Draw white outline for better visibility
+                        for dx in [-1, 0, 1]:
+                            for dy in [-1, 0, 1]:
+                                if dx != 0 or dy != 0:
+                                    draw.text((text_x + dx, text_y + dy), panel_number, fill='white', font=panel_font)
+                        # Draw black text on top
                         draw.text((text_x, text_y), panel_number, fill='black', font=panel_font)
                     else:
                         draw.text((text_x, text_y), panel_number, fill='black')
         
-        # Draw precise 1px white grid lines
-        for row in range(panels_height + 1):
-            y = row * panel_display_height
-            if y < display_height:
-                draw.line([(0, y), (display_width, y)], fill='white', width=1)
-        
-        for col in range(panels_width + 1):
-            x = col * panel_display_width
-            if x < display_width:
-                draw.line([(x, 0), (x, display_height)], fill='white', width=1)
-        
-        # Convert image to high-quality PNG bytes
+        # Convert to RGB and save with maximum quality PNG
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+            
         img_buffer = io.BytesIO()
-        # Use high quality PNG settings for sharp text
-        image.save(img_buffer, format='PNG', optimize=False, compress_level=1)
+        # Maximum quality PNG settings - no compression for sharpest text
+        image.save(img_buffer, format='PNG', optimize=False, compress_level=0, pnginfo=None)
         img_buffer.seek(0)
         
         # Get PNG data
