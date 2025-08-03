@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from PIL import Image, ImageDraw, ImageFont
 import base64
+import io
 import os
 import struct
 
@@ -25,9 +27,9 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '6.1 - Smart SVG-PNG Bridge',
-        'message': 'Service generating SVG with PNG-compatible headers for browsers',
-        'timestamp': '2025-08-04-00:25'
+        'version': '7.0 - True PNG Generation with Pillow',
+        'message': 'Service generating actual PNG files using Pillow library',
+        'timestamp': '2025-08-04-01:00'
     })
 
 @app.route('/test')
@@ -72,38 +74,50 @@ def generate_pixel_map():
         panel_display_width = int(panel_pixel_width / scale_factor)
         panel_display_height = int(panel_pixel_height / scale_factor)
         
-        # Generate high-quality SVG that browsers can convert to PNG
-        display_width = int(total_width / scale_factor)
-        display_height = int(total_height / scale_factor)
-        panel_display_width = int(panel_pixel_width / scale_factor)
-        panel_display_height = int(panel_pixel_height / scale_factor)
-        
         # Add space for title and info
         title_height = 120
         image_height = display_height + title_height
         
-        # Create optimized SVG with sharp edges for PNG conversion
-        svg_content = f'''<svg width="{display_width}" height="{image_height}" xmlns="http://www.w3.org/2000/svg" 
-                          style="background-color: black;">
-            <!-- Background -->
-            <rect width="{display_width}" height="{image_height}" fill="#000000"/>
-            
-            <!-- Surface title -->
-            <rect x="10" y="10" width="{min(400, display_width-20)}" height="50" 
-                  fill="rgba(0,0,0,0.9)" stroke="#FFD700" stroke-width="2"/>
-            <text x="20" y="35" fill="#FFD700" font-family="Arial, sans-serif" 
-                  font-size="20" font-weight="bold">
-                Screen {surface_index + 1}
-            </text>
-            
-            <!-- LED Info -->
-            <rect x="10" y="70" width="{min(500, display_width-20)}" height="40" 
-                  fill="rgba(0,0,0,0.9)" stroke="#FFD700" stroke-width="1"/>
-            <text x="20" y="90" fill="white" font-family="Arial, sans-serif" font-size="12">
-                {led_name} | {panels_width}×{panels_height} panels | {total_width}×{total_height}px
-            </text>
-'''
-
+        # Create actual PNG image using Pillow
+        image = Image.new('RGB', (display_width, image_height), color='black')
+        draw = ImageDraw.Draw(image)
+        
+        # Try to load a default font, fallback to basic if not available
+        try:
+            # Use default font - this should work on most systems
+            font_large = ImageFont.load_default()
+            font_medium = ImageFont.load_default()
+            font_small = ImageFont.load_default()
+        except Exception:
+            # If all else fails, use None (will use basic font)
+            font_large = None
+            font_medium = None
+            font_small = None
+        
+        # Draw title background (gold border)
+        title_box_width = min(400, display_width - 20)
+        draw.rectangle([10, 10, 10 + title_box_width, 60], 
+                      fill='black', outline='gold', width=2)
+        
+        # Draw title text
+        title_text = f"Screen {surface_index + 1}"
+        if font_large:
+            draw.text((20, 25), title_text, fill='gold', font=font_large)
+        else:
+            draw.text((20, 25), title_text, fill='gold')
+        
+        # Draw LED info background
+        info_box_width = min(500, display_width - 20)
+        draw.rectangle([10, 70, 10 + info_box_width, 110], 
+                      fill='black', outline='gold', width=1)
+        
+        # Draw LED info text
+        info_text = f"{led_name} | {panels_width}×{panels_height} panels | {total_width}×{total_height}px"
+        if font_medium:
+            draw.text((20, 82), info_text, fill='white', font=font_medium)
+        else:
+            draw.text((20, 82), info_text, fill='white')
+        
         # Generate panels with colors and numbers
         for row in range(panels_height):
             for col in range(panels_width):
@@ -112,41 +126,54 @@ def generate_pixel_map():
                 
                 # Generate color for this panel
                 panel_color = generate_color(col, row)
-                color_hex = f"#{panel_color[0]:02x}{panel_color[1]:02x}{panel_color[2]:02x}"
                 
-                # Panel rectangle
-                svg_content += f'''
-                <rect x="{x}" y="{y}" width="{panel_display_width}" height="{panel_display_height}" 
-                      fill="{color_hex}" stroke="#333333" stroke-width="1"/>
-                '''
+                # Draw panel rectangle
+                draw.rectangle([x, y, x + panel_display_width, y + panel_display_height], 
+                             fill=panel_color, outline='#333333', width=1)
                 
-                # Panel number if enabled and panel is large enough
+                # Draw panel number if enabled and panel is large enough
                 if show_panel_numbers and panel_display_width > 30 and panel_display_height > 20:
                     text_x = x + panel_display_width // 2
-                    text_y = y + panel_display_height // 2 + 4
+                    text_y = y + panel_display_height // 2 - 6
                     panel_number = f"{row + 1}.{col + 1}"
-                    font_size = min(12, panel_display_width // 8)
                     
-                    svg_content += f'''
-                    <text x="{text_x}" y="{text_y}" fill="#000000" font-family="Arial, sans-serif" 
-                          font-size="{font_size}" font-weight="bold" text-anchor="middle">
-                        {panel_number}
-                    </text>
-                    '''
-
-        svg_content += '</svg>'
+                    # Calculate text position for centering
+                    if font_small:
+                        # Get text dimensions for better centering
+                        try:
+                            bbox = draw.textbbox((0, 0), panel_number, font=font_small)
+                            text_width = bbox[2] - bbox[0]
+                            text_height = bbox[3] - bbox[1]
+                            text_x = x + (panel_display_width - text_width) // 2
+                            text_y = y + (panel_display_height - text_height) // 2
+                        except:
+                            # Fallback to simple centering
+                            text_x = x + panel_display_width // 2 - 10
+                            text_y = y + panel_display_height // 2 - 6
+                        
+                        draw.text((text_x, text_y), panel_number, fill='black', font=font_small)
+                    else:
+                        # Basic positioning without font
+                        text_x = x + panel_display_width // 2 - 10
+                        text_y = y + panel_display_height // 2 - 6
+                        draw.text((text_x, text_y), panel_number, fill='black')
         
-        # Encode SVG content
-        svg_base64 = base64.b64encode(svg_content.encode('utf-8')).decode()
-        file_size_mb = len(svg_content) / (1024 * 1024)
+        # Convert image to PNG bytes
+        img_buffer = io.BytesIO()
+        image.save(img_buffer, format='PNG', optimize=True)
+        img_buffer.seek(0)
         
-        # Return as PNG-compatible format that browsers can handle
-        format_type = 'PNG'  # Browsers will treat this as PNG when downloading
-        image_data = f'data:image/svg+xml;base64,{svg_base64}'
+        # Get PNG data
+        png_bytes = img_buffer.getvalue()
+        png_base64 = base64.b64encode(png_bytes).decode()
+        file_size_mb = len(png_bytes) / (1024 * 1024)
+        
+        # Create data URL for PNG
+        image_data = f'data:image/png;base64,{png_base64}'
         
         return jsonify({
             'success': True,
-            'image_base64': svg_base64,
+            'image_base64': png_base64,
             'imageData': image_data,
             'dimensions': {
                 'width': total_width,
@@ -164,13 +191,13 @@ def generate_pixel_map():
                 'resolution': f'{total_width}×{total_height}px',
                 'display_resolution': f'{display_width}×{image_height}px'
             },
-            'format': format_type,
+            'format': 'PNG',
             'panel_info': {
                 'total_panels': panels_width * panels_height,
                 'show_numbers': show_panel_numbers,
                 'show_grid': show_grid
             },
-            'note': f'Generated true {format_type} LED pixel map with colorful panels and numbers - Original: {total_width}×{total_height}px (scaled 1:{scale_factor:.1f} for display)'
+            'note': f'Generated true PNG LED pixel map with colorful panels and numbers - Original: {total_width}×{total_height}px (scaled 1:{scale_factor:.1f} for display)'
         })
         
     except Exception as e:
