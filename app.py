@@ -48,7 +48,7 @@ def health_check():
         'status': 'healthy',
         'version': '4.0 - PNG Edition',
         'message': 'Service is running with PIL for PNG generation',
-        'timestamp': '2025-08-04-00:20'
+        'timestamp': '2025-08-04-00:25'
     })
 
 @app.route('/test')
