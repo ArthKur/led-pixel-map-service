@@ -27,9 +27,9 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '7.0 - True PNG Generation with Pillow',
-        'message': 'Service generating actual PNG files using Pillow library',
-        'timestamp': '2025-08-04-01:00'
+        'version': '8.0 - Clean Visual Design with Thin White Borders',
+        'message': 'Service generating PNG files with panels only, centered title, and thin white panel borders',
+        'timestamp': '2025-08-04-02:00'
     })
 
 @app.route('/test')
@@ -74,62 +74,30 @@ def generate_pixel_map():
         panel_display_width = int(panel_pixel_width / scale_factor)
         panel_display_height = int(panel_pixel_height / scale_factor)
         
-        # Add space for title and info
-        title_height = 120
-        image_height = display_height + title_height
-        
-        # Create actual PNG image using Pillow
-        image = Image.new('RGB', (display_width, image_height), color='black')
+        # Create clean image with ONLY panels (no black top area)
+        image = Image.new('RGB', (display_width, display_height), color='black')
         draw = ImageDraw.Draw(image)
         
-        # Try to load a default font, fallback to basic if not available
+        # Try to load fonts with different sizes
         try:
-            # Use default font - this should work on most systems
-            font_large = ImageFont.load_default()
-            font_medium = ImageFont.load_default()
-            font_small = ImageFont.load_default()
+            font_title = ImageFont.load_default()  # For center title
+            font_info = ImageFont.load_default()   # For bottom left info
         except Exception:
-            # If all else fails, use None (will use basic font)
-            font_large = None
-            font_medium = None
-            font_small = None
+            font_title = None
+            font_info = None
         
-        # Draw title background (gold border)
-        title_box_width = min(400, display_width - 20)
-        draw.rectangle([10, 10, 10 + title_box_width, 60], 
-                      fill='black', outline='gold', width=2)
-        
-        # Draw title text
-        title_text = f"Screen {surface_index + 1}"
-        if font_large:
-            draw.text((20, 25), title_text, fill='gold', font=font_large)
-        else:
-            draw.text((20, 25), title_text, fill='gold')
-        
-        # Draw LED info background
-        info_box_width = min(500, display_width - 20)
-        draw.rectangle([10, 70, 10 + info_box_width, 110], 
-                      fill='black', outline='gold', width=1)
-        
-        # Draw LED info text
-        info_text = f"{led_name} | {panels_width}×{panels_height} panels | {total_width}×{total_height}px"
-        if font_medium:
-            draw.text((20, 82), info_text, fill='white', font=font_medium)
-        else:
-            draw.text((20, 82), info_text, fill='white')
-        
-        # Generate panels with colors and numbers
+        # Generate panels with thin white borders and colorful fills
         for row in range(panels_height):
             for col in range(panels_width):
                 x = col * panel_display_width
-                y = title_height + row * panel_display_height
+                y = row * panel_display_height
                 
                 # Generate color for this panel
                 panel_color = generate_color(col, row)
                 
-                # Draw panel rectangle
+                # Draw panel rectangle with thin white border (0.5px effect)
                 draw.rectangle([x, y, x + panel_display_width, y + panel_display_height], 
-                             fill=panel_color, outline='#333333', width=1)
+                             fill=panel_color, outline='white', width=1)
                 
                 # Draw panel number if enabled and panel is large enough
                 if show_panel_numbers and panel_display_width > 30 and panel_display_height > 20:
@@ -138,10 +106,10 @@ def generate_pixel_map():
                     panel_number = f"{row + 1}.{col + 1}"
                     
                     # Calculate text position for centering
-                    if font_small:
+                    if font_info:
                         # Get text dimensions for better centering
                         try:
-                            bbox = draw.textbbox((0, 0), panel_number, font=font_small)
+                            bbox = draw.textbbox((0, 0), panel_number, font=font_info)
                             text_width = bbox[2] - bbox[0]
                             text_height = bbox[3] - bbox[1]
                             text_x = x + (panel_display_width - text_width) // 2
@@ -151,12 +119,61 @@ def generate_pixel_map():
                             text_x = x + panel_display_width // 2 - 10
                             text_y = y + panel_display_height // 2 - 6
                         
-                        draw.text((text_x, text_y), panel_number, fill='black', font=font_small)
+                        draw.text((text_x, text_y), panel_number, fill='black', font=font_info)
                     else:
                         # Basic positioning without font
                         text_x = x + panel_display_width // 2 - 10
                         text_y = y + panel_display_height // 2 - 6
                         draw.text((text_x, text_y), panel_number, fill='black')
+        
+        # Draw "Screen X" title in CENTER of canvas
+        title_text = f"Screen {surface_index + 1}"
+        if font_title:
+            try:
+                bbox = draw.textbbox((0, 0), title_text, font=font_title)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                title_x = (display_width - text_width) // 2
+                title_y = (display_height - text_height) // 2
+            except:
+                title_x = display_width // 2 - 40
+                title_y = display_height // 2 - 10
+            
+            # Draw title with dark background for visibility
+            draw.rectangle([title_x - 10, title_y - 5, title_x + text_width + 10, title_y + text_height + 5], 
+                          fill=(30, 30, 30))  # Dark gray background
+            draw.text((title_x, title_y), title_text, fill='gold', font=font_title)
+        else:
+            # Simple center positioning
+            title_x = display_width // 2 - 40
+            title_y = display_height // 2 - 10
+            draw.rectangle([title_x - 10, title_y - 5, title_x + 80, title_y + 20], 
+                          fill=(30, 30, 30))
+            draw.text((title_x, title_y), title_text, fill='gold')
+        
+        # Draw info in BOTTOM LEFT corner on the panels
+        info_text = f"{panels_width}×{panels_height} panels | {total_width}×{total_height}px"
+        info_x = 10
+        info_y = display_height - 25
+        
+        if font_info:
+            try:
+                bbox = draw.textbbox((0, 0), info_text, font=font_info)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+            except:
+                text_width = len(info_text) * 6
+                text_height = 15
+            
+            # Draw info with dark background
+            draw.rectangle([info_x - 5, info_y - 5, info_x + text_width + 5, info_y + text_height + 5], 
+                          fill=(30, 30, 30))  # Dark gray background
+            draw.text((info_x, info_y), info_text, fill='white', font=font_info)
+        else:
+            # Simple positioning
+            draw.rectangle([info_x - 5, info_y - 5, info_x + 200, info_y + 15], 
+                          fill=(30, 30, 30))
+            draw.text((info_x, info_y), info_text, fill='white')
         
         # Convert image to PNG bytes
         img_buffer = io.BytesIO()
@@ -181,7 +198,7 @@ def generate_pixel_map():
             },
             'display_dimensions': {
                 'width': display_width,
-                'height': image_height
+                'height': display_height
             },
             'scale_factor': scale_factor,
             'file_size_mb': round(file_size_mb, 4),
@@ -189,7 +206,7 @@ def generate_pixel_map():
                 'name': led_name,
                 'panels': f'{panels_width}×{panels_height}',
                 'resolution': f'{total_width}×{total_height}px',
-                'display_resolution': f'{display_width}×{image_height}px'
+                'display_resolution': f'{display_width}×{display_height}px'
             },
             'format': 'PNG',
             'panel_info': {
