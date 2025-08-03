@@ -12,7 +12,8 @@ def health_check():
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
         'version': '3.0',
-        'message': 'Service is running without PIL dependency'
+        'message': 'Service is running without PIL dependency',
+        'timestamp': '2025-08-03-23:45'
     })
 
 @app.route('/test')
