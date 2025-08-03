@@ -2,8 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import base64
 import os
-import io
-from PIL import Image, ImageDraw, ImageFont
 
 app = Flask(__name__)
 CORS(app)
@@ -46,8 +44,8 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '4.0 - PNG Edition',
-        'message': 'Service is running with PIL for PNG generation',
+        'version': '4.1 - SVG with PNG compatibility',
+        'message': 'Service running with SVG generation optimized for PNG downloads',
         'timestamp': '2025-08-04-00:25'
     })
 
@@ -93,36 +91,38 @@ def generate_pixel_map():
         panel_display_width = int(panel_pixel_width / scale_factor)
         panel_display_height = int(panel_pixel_height / scale_factor)
         
+        # Generate high-quality SVG for PNG conversion by browser
+        display_width = int(total_width / scale_factor)
+        display_height = int(total_height / scale_factor)
+        panel_display_width = int(panel_pixel_width / scale_factor)
+        panel_display_height = int(panel_pixel_height / scale_factor)
+        
         # Add space for title and info
         title_height = 120
         image_height = display_height + title_height
         
-        # Create PNG image using PIL
-        image = Image.new('RGB', (display_width, image_height), color='black')
-        draw = ImageDraw.Draw(image)
-        
-        try:
-            # Try to load a font, fallback to default if not available
-            title_font = ImageFont.truetype("arial.ttf", 20)
-            info_font = ImageFont.truetype("arial.ttf", 12)
-            panel_font = ImageFont.truetype("arial.ttf", min(12, panel_display_width // 8))
-        except:
-            title_font = ImageFont.load_default()
-            info_font = ImageFont.load_default()
-            panel_font = ImageFont.load_default()
-        
-        # Draw title background and text
-        draw.rectangle([10, 10, min(400, display_width-20), 60], 
-                      fill='black', outline='gold', width=2)
-        draw.text((20, 25), f"Screen {surface_index + 1}", 
-                 fill='gold', font=title_font)
-        
-        # Draw LED info background and text
-        draw.rectangle([10, 70, min(500, display_width-20), 110], 
-                      fill='black', outline='gold', width=1)
-        info_text = f"{led_name} | {panels_width}×{panels_height} panels | {total_width}×{total_height}px"
-        draw.text((20, 82), info_text, fill='white', font=info_font)
-        
+        # Create SVG with PNG-friendly styling
+        svg_content = f'''<svg width="{display_width}" height="{image_height}" xmlns="http://www.w3.org/2000/svg" 
+                          style="background-color: black;">
+            <!-- Background -->
+            <rect width="{display_width}" height="{image_height}" fill="#000000"/>
+            
+            <!-- Surface title -->
+            <rect x="10" y="10" width="{min(400, display_width-20)}" height="50" 
+                  fill="rgba(0,0,0,0.9)" stroke="#FFD700" stroke-width="2"/>
+            <text x="20" y="35" fill="#FFD700" font-family="Arial, sans-serif" 
+                  font-size="20" font-weight="bold">
+                Screen {surface_index + 1}
+            </text>
+            
+            <!-- LED Info -->
+            <rect x="10" y="70" width="{min(500, display_width-20)}" height="40" 
+                  fill="rgba(0,0,0,0.9)" stroke="#FFD700" stroke-width="1"/>
+            <text x="20" y="90" fill="white" font-family="Arial, sans-serif" font-size="12">
+                {led_name} | {panels_width}×{panels_height} panels | {total_width}×{total_height}px
+            </text>
+'''
+
         # Generate panels with colors and numbers
         for row in range(panels_height):
             for col in range(panels_width):
@@ -131,37 +131,38 @@ def generate_pixel_map():
                 
                 # Generate color for this panel
                 panel_color = generate_color(col, row)
+                color_hex = f"#{panel_color[0]:02x}{panel_color[1]:02x}{panel_color[2]:02x}"
                 
-                # Draw panel rectangle
-                draw.rectangle([x, y, x + panel_display_width, y + panel_display_height], 
-                             fill=panel_color, outline='#333333', width=1)
+                # Panel rectangle
+                svg_content += f'''
+                <rect x="{x}" y="{y}" width="{panel_display_width}" height="{panel_display_height}" 
+                      fill="{color_hex}" stroke="#333333" stroke-width="1" opacity="0.9"/>
+                '''
                 
-                # Draw panel number if enabled and panel is large enough
+                # Panel number if enabled and panel is large enough
                 if show_panel_numbers and panel_display_width > 30 and panel_display_height > 20:
                     text_x = x + panel_display_width // 2
-                    text_y = y + panel_display_height // 2
+                    text_y = y + panel_display_height // 2 + 4
                     panel_number = f"{row + 1}.{col + 1}"
+                    font_size = min(12, panel_display_width // 8)
                     
-                    # Get text bounding box for centering
-                    bbox = draw.textbbox((0, 0), panel_number, font=panel_font)
-                    text_width = bbox[2] - bbox[0]
-                    text_height = bbox[3] - bbox[1]
-                    
-                    draw.text((text_x - text_width//2, text_y - text_height//2), 
-                             panel_number, fill='black', font=panel_font)
+                    svg_content += f'''
+                    <text x="{text_x}" y="{text_y}" fill="#000000" font-family="Arial, sans-serif" 
+                          font-size="{font_size}" font-weight="bold" text-anchor="middle">
+                        {panel_number}
+                    </text>
+                    '''
+
+        svg_content += '</svg>'
         
-        # Convert to base64
-        img_buffer = io.BytesIO()
-        image.save(img_buffer, format='PNG', optimize=True)
-        img_buffer.seek(0)
-        
-        png_base64 = base64.b64encode(img_buffer.getvalue()).decode()
-        file_size_mb = len(img_buffer.getvalue()) / (1024 * 1024)
+        # Convert SVG to base64
+        svg_base64 = base64.b64encode(svg_content.encode()).decode()
+        file_size_mb = len(svg_content) / (1024 * 1024)
         
         return jsonify({
             'success': True,
-            'image_base64': png_base64,
-            'imageData': f'data:image/png;base64,{png_base64}',
+            'image_base64': svg_base64,
+            'imageData': f'data:image/svg+xml;base64,{svg_base64}',
             'dimensions': {
                 'width': total_width,
                 'height': total_height
@@ -178,13 +179,13 @@ def generate_pixel_map():
                 'resolution': f'{total_width}×{total_height}px',
                 'display_resolution': f'{display_width}×{image_height}px'
             },
-            'format': 'PNG',
+            'format': 'SVG (PNG-convertible)',
             'panel_info': {
                 'total_panels': panels_width * panels_height,
                 'show_numbers': show_panel_numbers,
                 'show_grid': show_grid
             },
-            'note': f'Generated PNG LED pixel map with colorful panels and numbers - Original: {total_width}×{total_height}px (scaled 1:{scale_factor:.1f} for display)'
+            'note': f'Generated high-quality SVG LED pixel map with colorful panels and numbers - Original: {total_width}×{total_height}px (scaled 1:{scale_factor:.1f} for display)'
         })
         
     except Exception as e:
