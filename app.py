@@ -35,6 +35,8 @@ def generate_color(panel_x, panel_y):
             r = hue_to_rgb(p, q, h + 1/3)
             g = hue_to_rgb(p, q, h)
             b = hue_to_rgb(p, q, h - 1/3)
+        
+        return (r, g, b)
     
     r, g, b = hsl_to_rgb(h, s, l)
     return (int(r*255), int(g*255), int(b*255))
