@@ -5,7 +5,7 @@ services:
     name: led-pixel-map-service
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app_minimal:app --timeout 120 --keep-alive 120 --workers 1
+    startCommand: gunicorn app_no_pil:app --timeout 120 --keep-alive 120 --workers 1
     plan: free
     envVars:
       - key: PYTHON_VERSION
