@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import base64
 import os
+import io
+import cairosvg
 
 app = Flask(__name__)
 CORS(app)
@@ -24,8 +26,8 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '4.1 - SVG with PNG compatibility',
-        'message': 'Service running with SVG generation optimized for PNG downloads',
+        'version': '5.0 - True PNG Generation',
+        'message': 'Service running with SVG->PNG conversion using CairoSVG',
         'timestamp': '2025-08-04-00:25'
     })
 
@@ -135,14 +137,25 @@ def generate_pixel_map():
 
         svg_content += '</svg>'
         
-        # Convert SVG to base64
-        svg_base64 = base64.b64encode(svg_content.encode()).decode()
-        file_size_mb = len(svg_content) / (1024 * 1024)
+        # Convert SVG to PNG using CairoSVG
+        try:
+            png_data = cairosvg.svg2png(bytestring=svg_content.encode('utf-8'))
+            png_base64 = base64.b64encode(png_data).decode()
+            file_size_mb = len(png_data) / (1024 * 1024)
+            format_type = 'PNG'
+            image_data = f'data:image/png;base64,{png_base64}'
+        except Exception as e:
+            # Fallback to SVG if PNG conversion fails
+            svg_base64 = base64.b64encode(svg_content.encode()).decode()
+            png_base64 = svg_base64
+            file_size_mb = len(svg_content) / (1024 * 1024)
+            format_type = 'SVG (PNG conversion failed)'
+            image_data = f'data:image/svg+xml;base64,{svg_base64}'
         
         return jsonify({
             'success': True,
-            'image_base64': svg_base64,
-            'imageData': f'data:image/svg+xml;base64,{svg_base64}',
+            'image_base64': png_base64,
+            'imageData': image_data,
             'dimensions': {
                 'width': total_width,
                 'height': total_height
@@ -159,13 +172,13 @@ def generate_pixel_map():
                 'resolution': f'{total_width}×{total_height}px',
                 'display_resolution': f'{display_width}×{image_height}px'
             },
-            'format': 'SVG (PNG-convertible)',
+            'format': format_type,
             'panel_info': {
                 'total_panels': panels_width * panels_height,
                 'show_numbers': show_panel_numbers,
                 'show_grid': show_grid
             },
-            'note': f'Generated high-quality SVG LED pixel map with colorful panels and numbers - Original: {total_width}×{total_height}px (scaled 1:{scale_factor:.1f} for display)'
+            'note': f'Generated {format_type} LED pixel map with colorful panels and numbers - Original: {total_width}×{total_height}px (scaled 1:{scale_factor:.1f} for display)'
         })
         
     except Exception as e:
