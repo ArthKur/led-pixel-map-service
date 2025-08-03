@@ -8,38 +8,16 @@ CORS(app)
 
 def generate_color(panel_x, panel_y):
     """Generate a consistent color for each panel based on position"""
-    # Use position to create varied but consistent colors
-    hue = (panel_x * 17 + panel_y * 23) % 360
-    saturation = 60 + (panel_x * panel_y) % 40  # 60-100%
-    lightness = 45 + (panel_x + panel_y) % 30   # 45-75%
+    # Simple color generation using basic math
+    colors = [
+        (255, 107, 107), (78, 205, 196), (69, 183, 209), (150, 206, 180), (255, 234, 167),
+        (221, 160, 221), (152, 216, 200), (247, 220, 111), (187, 143, 206), (133, 193, 233),
+        (248, 196, 113), (130, 224, 170), (241, 148, 138), (133, 193, 233), (244, 208, 63)
+    ]
     
-    # Convert HSL to RGB (simplified)
-    h = hue / 360.0
-    s = saturation / 100.0
-    l = lightness / 100.0
-    
-    def hsl_to_rgb(h, s, l):
-        if s == 0:
-            r = g = b = l
-        else:
-            def hue_to_rgb(p, q, t):
-                if t < 0: t += 1
-                if t > 1: t -= 1
-                if t < 1/6: return p + (q - p) * 6 * t
-                if t < 1/2: return q
-                if t < 2/3: return p + (q - p) * (2/3 - t) * 6
-                return p
-            
-            q = l * (1 + s) if l < 0.5 else l + s - l * s
-            p = 2 * l - q
-            r = hue_to_rgb(p, q, h + 1/3)
-            g = hue_to_rgb(p, q, h)
-            b = hue_to_rgb(p, q, h - 1/3)
-        
-        return (r, g, b)
-    
-    r, g, b = hsl_to_rgb(h, s, l)
-    return (int(r*255), int(g*255), int(b*255))
+    # Pick color based on position
+    color_index = (panel_x * 3 + panel_y * 7) % len(colors)
+    return colors[color_index]
 
 @app.route('/')
 def health_check():
