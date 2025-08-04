@@ -10,16 +10,15 @@ app = Flask(__name__)
 CORS(app)
 
 def generate_color(panel_x, panel_y):
-    """Generate a consistent color for each panel based on position"""
-    # Simple color generation using basic math
+    """Generate alternating full red and medium grey colors for each panel"""
+    # Use only two colors: full red and medium grey
     colors = [
-        (255, 107, 107), (78, 205, 196), (69, 183, 209), (150, 206, 180), (255, 234, 167),
-        (221, 160, 221), (152, 216, 200), (247, 220, 111), (187, 143, 206), (133, 193, 233),
-        (248, 196, 113), (130, 224, 170), (241, 148, 138), (133, 193, 233), (244, 208, 63)
+        (255, 0, 0),    # Full red (pure red)
+        (128, 128, 128) # Medium grey
     ]
     
-    # Pick color based on position
-    color_index = (panel_x * 3 + panel_y * 7) % len(colors)
+    # Alternate colors in a checkerboard pattern
+    color_index = (panel_x + panel_y) % len(colors)
     return colors[color_index]
 
 @app.route('/')
