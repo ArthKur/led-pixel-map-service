@@ -26,7 +26,7 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.9 - Crystal Clear: Max resolution 12000×12000 for ultra-sharp Absen panels',
+        'version': '10.10 - Balanced Quality: 6000×6000 max for stable sharp images',
         'message': 'Red/Grey alternating pattern with surface-size-based font scaling and improved image quality',
         'features': 'Surface-width based font scaling, no backgrounds, pure black text',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
@@ -60,10 +60,10 @@ def generate_pixel_map():
         total_height = panels_height * panel_pixel_height
         
         # For very large images, create a manageable size for display
-        # MUCH HIGHER limits for crystal clear quality - user wants sharp 200px panels
-        # 50m×50m = 20,000×20,000px original → need higher limits for sharpness
-        max_display_width = 12000   # Increased from 8000 for crystal clarity
-        max_display_height = 12000  # Increased from 8000 for crystal clarity
+        # BALANCED limits for good quality without overwhelming the server
+        # 50m×50m = 20,000×20,000px original → target ~6000px output for good balance
+        max_display_width = 6000   # Balanced limit for server stability
+        max_display_height = 6000  # Balanced limit for server stability
         scale_factor = 1
         
         if total_width > max_display_width or total_height > max_display_height:
