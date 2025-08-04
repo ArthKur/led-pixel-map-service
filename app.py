@@ -26,9 +26,10 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.0 - Native PNG Generation: Zero conversion, pixel-perfect accuracy',
-        'message': 'Direct PNG generation on Render.com for Flutter - no SVG conversion quality loss',
-        'timestamp': '2025-08-04-05:00'
+        'version': '10.1 - Red/Grey Color Scheme: Alternating full red and medium grey panels',
+        'message': 'Direct PNG generation with red/grey alternating pattern - no SVG conversion quality loss',
+        'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
+        'timestamp': '2025-08-04-06:00'
     })
 
 @app.route('/test')
