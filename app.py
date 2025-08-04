@@ -26,8 +26,8 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.7 - Surface-Dimension Font Scale: 10m surface = reference, 50m surface = 50% smaller',
-        'message': 'Red/Grey alternating pattern with surface-size-based font scaling per user specification',
+        'version': '10.8 - Higher Resolution: Increased max resolution to 8000×8000 for sharper images',
+        'message': 'Red/Grey alternating pattern with surface-size-based font scaling and improved image quality',
         'features': 'Surface-width based font scaling, no backgrounds, pure black text',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
         'timestamp': '2025-08-04-09:00'
@@ -60,9 +60,10 @@ def generate_pixel_map():
         total_height = panels_height * panel_pixel_height
         
         # For very large images, create a manageable size for display
-        # Scale down if too large to keep file size reasonable
-        max_display_width = 4000
-        max_display_height = 2400
+        # INCREASED limits for better quality - user wants sharp images
+        # Old limits were too small causing pixelated results
+        max_display_width = 8000   # Increased from 4000 for better quality
+        max_display_height = 8000  # Increased from 2400 for better quality
         scale_factor = 1
         
         if total_width > max_display_width or total_height > max_display_height:
@@ -74,6 +75,8 @@ def generate_pixel_map():
         display_height = int(total_height / scale_factor)
         panel_display_width = int(panel_pixel_width / scale_factor)
         panel_display_height = int(panel_pixel_height / scale_factor)
+        
+        print(f"Image scaling: {total_width}×{total_height} → {display_width}×{display_height} (scale: {scale_factor:.2f})")
         
         # Create high-fidelity RGB image for LED pixel mapping
         # Use RGB mode for consistent color representation across platforms
