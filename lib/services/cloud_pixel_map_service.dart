@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/surface_model.dart';
@@ -8,14 +10,11 @@ import '../models/surface_model.dart';
 /// Offloads pixel map generation to Python cloud service on Render.com
 /// Removes all browser Canvas API limitations for unlimited image sizes
 class CloudPixelMapService {
-  // Cloud service URL - UPDATE THIS AFTER DEPLOYMENT
-  static const String _baseUrl = 'https://led-pixel-map-service.onrender.com';
-  
-  // Local development URL
-  static const String _localUrl = 'http://localhost:8080';
-  
-  // Use local for development, cloud for production
-  static String get serviceUrl => _localUrl; // Temporarily force local service
+  // Cloud service URL - UPDATED TO WORKING DEPLOYMENT
+  static const String _baseUrl = 'https://led-pixel-map-service-1.onrender.com';
+
+  // Use cloud service (proven working with 40000×2400px generation)
+  static String get serviceUrl => _baseUrl;
 
   /// Generates pixel map using cloud service
   static Future<CloudPixelMapResult> generateCloudPixelMap(
@@ -27,7 +26,9 @@ class CloudPixelMapService {
     try {
       // Validate surface
       if (surface.calculation == null || surface.selectedLED == null) {
-        return CloudPixelMapResult.error("Invalid surface data - missing calculation or LED selection");
+        return CloudPixelMapResult.error(
+          "Invalid surface data - missing calculation or LED selection",
+        );
       }
 
       final calc = surface.calculation!;
@@ -54,33 +55,40 @@ class CloudPixelMapService {
       debugPrint('Request data: ${jsonEncode(requestData)}');
 
       // Make HTTP request to cloud service
-      final response = await http.post(
-        Uri.parse('$serviceUrl/generate-pixel-map'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(requestData),
-      ).timeout(
-        const Duration(minutes: 5), // Allow 5 minutes for large images
-      );
+      final response = await http
+          .post(
+            Uri.parse('$serviceUrl/generate-pixel-map'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode(requestData),
+          )
+          .timeout(
+            const Duration(minutes: 5), // Allow 5 minutes for large images
+          );
 
       debugPrint('Cloud Service: Response status ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        
+
         if (responseData['success'] == true) {
-          // Decode base64 image
+          // Get image data - SVG content that can be converted to PNG
           final imageBase64 = responseData['image_base64'] as String;
           final imageBytes = base64Decode(imageBase64);
-          
+
+          // Note: The cloud service provides SVG which browsers can convert to PNG
+          // when downloading via the download dialog
+
           final dimensions = responseData['dimensions'];
           final fileSizeMB = responseData['file_size_mb'];
           final ledInfo = responseData['led_info'];
-          
-          debugPrint('Cloud Service: Success! Generated ${dimensions['width']}×${dimensions['height']}px (${fileSizeMB}MB)');
-          
+
+          debugPrint(
+            'Cloud Service: Success! Generated ${dimensions['width']}×${dimensions['height']}px (${fileSizeMB}MB)',
+          );
+
           return CloudPixelMapResult.success(
             imageBytes: imageBytes,
             width: dimensions['width'],
@@ -101,17 +109,22 @@ class CloudPixelMapService {
       }
     } catch (e) {
       debugPrint('Cloud Service: Exception: $e');
-      
+
       // Provide helpful error messages
       String errorMessage = e.toString();
-      if (errorMessage.contains('TimeoutException') || errorMessage.contains('timeout')) {
-        errorMessage = 'Cloud service timeout - the image may be too large or service is busy. Try again in a moment.';
-      } else if (errorMessage.contains('SocketException') || errorMessage.contains('connection')) {
-        errorMessage = 'Cannot connect to cloud service. Check internet connection.';
+      if (errorMessage.contains('TimeoutException') ||
+          errorMessage.contains('timeout')) {
+        errorMessage =
+            'Cloud service timeout - the image may be too large or service is busy. Try again in a moment.';
+      } else if (errorMessage.contains('SocketException') ||
+          errorMessage.contains('connection')) {
+        errorMessage =
+            'Cannot connect to cloud service. Check internet connection.';
       } else if (errorMessage.contains('FormatException')) {
-        errorMessage = 'Invalid response from cloud service - service may be down.';
+        errorMessage =
+            'Invalid response from cloud service - service may be down.';
       }
-      
+
       return CloudPixelMapResult.error(errorMessage);
     }
   }
@@ -119,10 +132,12 @@ class CloudPixelMapService {
   /// Health check for cloud service
   static Future<bool> isServiceHealthy() async {
     try {
-      final response = await http.get(
-        Uri.parse('$serviceUrl/'),
-        headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$serviceUrl/'),
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -138,10 +153,12 @@ class CloudPixelMapService {
   /// Get service information
   static Future<Map<String, dynamic>?> getServiceInfo() async {
     try {
-      final response = await http.get(
-        Uri.parse('$serviceUrl/'),
-        headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$serviceUrl/'),
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -196,9 +213,6 @@ class CloudPixelMapResult {
   }
 
   factory CloudPixelMapResult.error(String message) {
-    return CloudPixelMapResult._(
-      isSuccess: false,
-      errorMessage: message,
-    );
+    return CloudPixelMapResult._(isSuccess: false, errorMessage: message);
   }
 }

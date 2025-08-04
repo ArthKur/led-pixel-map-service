@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 import 'dart:typed_data';
-import 'dart:math' as math;
 import '../models/surface_model.dart';
 import '../services/pixel_map_service.dart';
 import '../services/file_service.dart';
@@ -11,11 +9,17 @@ const Color borderColorLight = Color(0xFFE7DCCC); // Lighter border #E7DCCC
 const Color borderColorDark = Color(0xFFD4C7B7); // Darker border #D4C7B7
 
 // Text colors as per style guide
-const Color textColorPrimary = Color(0xFF383838); // Deep neutral gray for most text
-const Color textColorSecondary = Color(0xFFA2A09A); // Light gray for secondary/disabled text
+const Color textColorPrimary = Color(
+  0xFF383838,
+); // Deep neutral gray for most text
+const Color textColorSecondary = Color(
+  0xFFA2A09A,
+); // Light gray for secondary/disabled text
 
 // Header/accent colors as per style guide
-const Color headerBackgroundColor = Color(0xFFEADFC9); // Warm tan/sand/cream #EADFC9
+const Color headerBackgroundColor = Color(
+  0xFFEADFC9,
+); // Warm tan/sand/cream #EADFC9
 const Color headerTextColor = Color(0xFFC7B299); // Slightly deeper sand #C7B299
 
 // Define the new button background color as per style guide
@@ -417,40 +421,6 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
     );
   }
 
-  Future<void> _drawLogo(
-    Canvas canvas,
-    double canvasWidth,
-    double canvasHeight,
-  ) async {
-    // Only draw logo if checkbox is checked and logo is available
-    if (_includeLogo && widget.logoBase64 != null) {
-      try {
-        // Extract base64 data and convert to bytes
-        final base64Data = widget.logoBase64!.split(',').last;
-        final uint8List = FileService.base64ToBytes(base64Data);
-
-        // Create image from bytes
-        final codec = await ui.instantiateImageCodec(uint8List);
-        final frame = await codec.getNextFrame();
-        final image = frame.image;
-
-        // Position logo in bottom right corner
-        const double logoSize = 150;
-        final double logoX = canvasWidth - logoSize - 50;
-        final double logoY = canvasHeight - logoSize - 50;
-
-        canvas.drawImageRect(
-          image,
-          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-          Rect.fromLTWH(logoX, logoY, logoSize, logoSize),
-          Paint(),
-        );
-      } catch (e) {
-        print('Error drawing logo: $e');
-      }
-    }
-  }
-
   Future<void> _generatePixelMaps() async {
     try {
       if (_selectedOption == 'Selected Surfaces') {
@@ -486,9 +456,11 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
       if (_selectedSurfaces[i] == true) {
         final surface = widget.surfaces[i];
         if (surface.calculation != null) {
-          final imageBytes = await PixelMapService.createPixelMapImage(
+          final imageBytes = await PixelMapService.createPixelMapImageSmart(
             surface,
             i,
+            showGrid: true,
+            showPanelNumbers: true,
           );
           final fileName = _generateFileName(surface, i);
           _downloadImage(imageBytes, fileName);
@@ -501,100 +473,15 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
     for (int i = 0; i < widget.surfaces.length; i++) {
       final surface = widget.surfaces[i];
       if (surface.calculation != null) {
-        final imageBytes = await PixelMapService.createPixelMapImage(
+        final imageBytes = await PixelMapService.createPixelMapImageSmart(
           surface,
           i,
+          showGrid: true,
+          showPanelNumbers: true,
         );
         final fileName = _generateFileName(surface, i);
         _downloadImage(imageBytes, fileName);
       }
-    }
-  }
-
-  void _drawPixelGrid(
-    Canvas canvas,
-    double startX,
-    double startY,
-    double cellSize,
-    int panelsWidth,
-    int panelsHeight,
-  ) {
-    final paint = Paint();
-
-    // Color pattern similar to the reference image
-    final colors = [
-      const Color(0xFF8B4C8B), // Purple
-      const Color(0xFF2E7D7D), // Teal
-      const Color(0xFF8B8B4C), // Olive
-      const Color(0xFF4C4C8B), // Navy
-      const Color(0xFF4C8B4C), // Green
-      const Color(0xFF8B4C4C), // Maroon
-    ];
-
-    // Draw grid cells with corrected numbering
-    for (int row = 0; row < panelsHeight; row++) {
-      for (int col = 0; col < panelsWidth; col++) {
-        final x = startX + (col * cellSize);
-        final y = startY + (row * cellSize);
-
-        // Select color based on position for pattern variety
-        final colorIndex = (row + col) % colors.length;
-        paint.color = colors[colorIndex];
-
-        // Draw cell
-        canvas.drawRect(
-          Rect.fromLTWH(x, y, cellSize - 2, cellSize - 2), // -2 for border
-          paint,
-        );
-
-        // Draw panel number in TOP LEFT corner of each panel (increased font size by 1)
-        // Corrected numbering: horizontal first (1,1 then 1,2 etc), then vertical (2,1 etc)
-        final panelLabel = '${row + 1},${col + 1}';
-        final panelTextPainter = TextPainter(
-          text: TextSpan(
-            text: panelLabel,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: math.max(9, cellSize / 8 + 1), // Increased by 1
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        );
-        panelTextPainter.layout();
-
-        // Position in top-left corner of panel
-        panelTextPainter.paint(
-          canvas,
-          Offset(x + 4, y + 4), // 4px padding from edges
-        );
-
-        // Removed the panel markers (5 circles and cross)
-      }
-    }
-
-    // Draw grid lines (changed to white with 0.5px thickness)
-    paint.color = Colors.white; // Changed from gray to white
-    paint.strokeWidth = 0.5; // Changed from 2 to 0.5px
-
-    // Vertical lines
-    for (int i = 0; i <= panelsWidth; i++) {
-      final x = startX + (i * cellSize);
-      canvas.drawLine(
-        Offset(x, startY),
-        Offset(x, startY + (panelsHeight * cellSize)),
-        paint,
-      );
-    }
-
-    // Horizontal lines
-    for (int i = 0; i <= panelsHeight; i++) {
-      final y = startY + (i * cellSize);
-      canvas.drawLine(
-        Offset(startX, y),
-        Offset(startX + (panelsWidth * cellSize), y),
-        paint,
-      );
     }
   }
 

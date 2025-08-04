@@ -938,10 +938,12 @@ class _LEDStudyDialogState extends State<LEDStudyDialog> {
     for (int i = 0; i < widget.surfaces.length; i++) {
       final surface = widget.surfaces[i];
       if (surface.calculation != null) {
-        // Generate the pixel map image using the shared service
-        final pixelMapBytes = await PixelMapService.createPixelMapImage(
+        // Generate the pixel map image using the smart service with cloud support
+        final pixelMapBytes = await PixelMapService.createPixelMapImageSmart(
           surface,
           i,
+          showGrid: true,
+          showPanelNumbers: true,
         );
 
         pdf.addPage(

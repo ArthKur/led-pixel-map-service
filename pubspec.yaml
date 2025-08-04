@@ -49,6 +49,9 @@ dependencies:
   responsive_builder: ^0.7.1
   sizer: ^2.0.15
   
+  # HTTP requests for cloud service
+  http: ^1.1.0
+  
   # Cross-platform file handling
   file_picker: ^8.0.0+1
   path_provider: ^2.1.4

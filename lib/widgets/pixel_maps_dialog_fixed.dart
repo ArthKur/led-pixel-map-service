@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'dart:html' as html;
 import 'dart:typed_data';
 import '../models/surface_model.dart';
 import '../services/pixel_map_service.dart';
+import 'dart:io' show Platform, File;
+// Conditional import for web support
+import 'dart:html' as html show AnchorElement, Url, Blob, document;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Border colors as per style guide
 const Color borderColorLight = Color(0xFFE7DCCC); // Lighter border #E7DCCC
@@ -49,7 +52,8 @@ class PixelMapsDialog extends StatefulWidget {
 class _PixelMapsDialogState extends State<PixelMapsDialog> {
   final List<String> _exportOptions = ['Selected Surfaces', 'All Surfaces'];
   String _selectedOption = 'Selected Surfaces';
-  final Map<int, bool> _selectedSurfaces = {}; // Track which surfaces are selected
+  final Map<int, bool> _selectedSurfaces =
+      {}; // Track which surfaces are selected
 
   @override
   void initState() {
@@ -118,9 +122,11 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                     child: Row(
                       children: [
                         Icon(
-                          Icons.info_outline, 
-                          color: widget.isDarkMode ? Colors.white : textColorPrimary, 
-                          size: 20
+                          Icons.info_outline,
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : textColorPrimary,
+                          size: 20,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -128,7 +134,9 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                             'Generates ultra-high-quality pixel-perfect images with exact 1:1 LED pixel mapping. Anti-aliasing disabled for maximum sharpness.',
                             style: TextStyle(
                               fontSize: 13,
-                              color: widget.isDarkMode ? Colors.white : textColorPrimary,
+                              color: widget.isDarkMode
+                                  ? Colors.white
+                                  : textColorPrimary,
                             ),
                           ),
                         ),
@@ -136,15 +144,15 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Export options
                   _buildExportOptions(),
                   const SizedBox(height: 20),
-                  
+
                   // Surface selection
                   Expanded(child: _buildSurfaceSelection()),
                   const SizedBox(height: 20),
-                  
+
                   // Generate button
                   _buildGenerateButton(),
                 ],
@@ -162,9 +170,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
       decoration: BoxDecoration(
         color: headerBackgroundColor.withOpacity(0.2),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: borderColorLight.withOpacity(0.5),
-        ),
+        border: Border.all(color: borderColorLight.withOpacity(0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,23 +196,27 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
           const SizedBox(height: 10),
           Row(
             children: _exportOptions
-                .map((option) => Expanded(
-                      child: RadioListTile<String>(
-                        title: Text(
-                          option,
-                          style: TextStyle(
-                            color: widget.isDarkMode ? Colors.white : textColorPrimary,
-                          ),
+                .map(
+                  (option) => Expanded(
+                    child: RadioListTile<String>(
+                      title: Text(
+                        option,
+                        style: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : textColorPrimary,
                         ),
-                        value: option,
-                        groupValue: _selectedOption,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedOption = value!;
-                          });
-                        },
                       ),
-                    ))
+                      value: option,
+                      groupValue: _selectedOption,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedOption = value!;
+                        });
+                      },
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ],
@@ -220,9 +230,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
       decoration: BoxDecoration(
         color: headerBackgroundColor.withOpacity(0.2),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: borderColorLight.withOpacity(0.5),
-        ),
+        border: Border.all(color: borderColorLight.withOpacity(0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,15 +263,19 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                   title: Text(
                     surface.name,
                     style: TextStyle(
-                      color: widget.isDarkMode ? Colors.white : textColorPrimary,
+                      color: widget.isDarkMode
+                          ? Colors.white
+                          : textColorPrimary,
                     ),
                   ),
                   subtitle: Text(
-                    surface.calculation != null 
-                      ? '${surface.calculation!.pixelsWidth} x ${surface.calculation!.pixelsHeight} pixels'
-                      : 'No calculation available',
+                    surface.calculation != null
+                        ? '${surface.calculation!.pixelsWidth} x ${surface.calculation!.pixelsHeight} pixels'
+                        : 'No calculation available',
                     style: TextStyle(
-                      color: widget.isDarkMode ? Colors.grey[300] : textColorSecondary,
+                      color: widget.isDarkMode
+                          ? Colors.grey[300]
+                          : textColorSecondary,
                     ),
                   ),
                   value: _selectedSurfaces[index] ?? false,
@@ -291,19 +303,13 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
           backgroundColor: buttonBackgroundColor,
           foregroundColor: buttonTextColor,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 2,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.download,
-              size: 18,
-              color: buttonTextColor,
-            ),
+            Icon(Icons.download, size: 18, color: buttonTextColor),
             const SizedBox(width: 8),
             const Text(
               'Generate Pixel-Perfect Maps',
@@ -338,10 +344,10 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
       for (int i = 0; i < surfacesToExport.length; i++) {
         final surface = surfacesToExport[i];
         final originalIndex = widget.surfaces.indexOf(surface);
-        
+
         final imageBytes = await _createPixelMapImage(surface, originalIndex);
         final fileName = _generateFileName(surface, originalIndex);
-        
+
         await _downloadImageBytes(imageBytes, fileName);
       }
 
@@ -352,57 +358,87 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
   }
 
   Future<Uint8List> _createPixelMapImage(Surface surface, int index) async {
-    // Always use ultra-high-quality pixel-perfect generation
+    // Use smart generation that automatically chooses cloud vs local
     if (surface.calculation == null) {
       throw Exception('Surface ${surface.name} has no calculation data');
     }
-    
+
     final pixelsWidth = surface.calculation!.pixelsWidth;
     final pixelsHeight = surface.calculation!.pixelsHeight;
-    
-    return await PixelMapService.createUltraPixelPerfectImage(
-      surface, 
+
+    // Use smart ultra pixel perfect that handles cloud/local automatically
+    return await PixelMapService.createUltraPixelPerfectImageSmart(
+      surface,
       index,
       imageWidth: pixelsWidth,
       imageHeight: pixelsHeight,
-      showPanelNumbers: true,  // Always show panel numbers
-      showGrid: true,          // Always show grid
+      showPanelNumbers: true, // Always show panel numbers
+      showGrid: true, // Always show grid
     );
   }
 
   String _generateFileName(Surface surface, int index) {
     // Get pixel resolution
-    final pixelResolution = surface.calculation != null 
+    final pixelResolution = surface.calculation != null
         ? '${surface.calculation!.pixelsWidth}x${surface.calculation!.pixelsHeight}'
         : 'unknown_resolution';
-    
+
     // Get project information
-    final projectNumber = widget.projectData?.projectNumber != null && widget.projectData!.projectNumber.isNotEmpty
-        ? widget.projectData!.projectNumber 
+    final projectNumber =
+        widget.projectData?.projectNumber != null &&
+            widget.projectData!.projectNumber.isNotEmpty
+        ? widget.projectData!.projectNumber
         : 'no_project_number';
-    
-    final projectName = widget.projectData?.projectName != null && widget.projectData!.projectName.isNotEmpty
+
+    final projectName =
+        widget.projectData?.projectName != null &&
+            widget.projectData!.projectName.isNotEmpty
         ? widget.projectData!.projectName.replaceAll(' ', '_')
         : 'no_project_name';
-    
+
     // Clean surface name
     final surfaceName = surface.name.replaceAll(' ', '_');
-    
+
     // Format: Pixel_Map_[resolution]_[project_number]_[project_name]_[surface_name]_[surface_index].png
     return 'Pixel_Map_${pixelResolution}_${projectNumber}_${projectName}_${surfaceName}_${index + 1}.png';
   }
 
-  Future<void> _downloadImageBytes(Uint8List imageBytes, String fileName) async {
+  Future<void> _downloadImageBytes(
+    Uint8List imageBytes,
+    String fileName,
+  ) async {
     try {
-      final blob = html.Blob([imageBytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      
-      // Create and trigger download
-      html.AnchorElement(href: url)
-        ..setAttribute('download', fileName)
-        ..click();
-      
-      html.Url.revokeObjectUrl(url);
+      if (kIsWeb) {
+        // Web platform - use browser download API
+        final blob = html.Blob([imageBytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..style.display = 'none';
+
+        html.document.body?.children.add(anchor);
+        anchor.click();
+        html.document.body?.children.remove(anchor);
+        html.Url.revokeObjectUrl(url);
+
+        _showMessage('File downloaded: $fileName');
+      } else {
+        // Desktop platforms - save to file system
+        try {
+          final desktopPath = '/Users/${Platform.environment['USER']}/Desktop';
+          final file = File('$desktopPath/$fileName');
+          await file.writeAsBytes(imageBytes);
+          _showMessage('File saved to Desktop: $fileName');
+        } catch (e) {
+          // Fallback: try Downloads folder
+          final downloadsPath =
+              '/Users/${Platform.environment['USER']}/Downloads';
+          final file = File('$downloadsPath/$fileName');
+          await file.writeAsBytes(imageBytes);
+          _showMessage('File saved to Downloads: $fileName');
+        }
+      }
     } catch (e) {
       throw Exception('Failed to download image: $e');
     }
@@ -441,7 +477,9 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: widget.isDarkMode ? Colors.white : buttonTextColor,
+              foregroundColor: widget.isDarkMode
+                  ? Colors.white
+                  : buttonTextColor,
             ),
             child: const Text('OK'),
           ),

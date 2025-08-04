@@ -31,15 +31,20 @@ class PixelMapsDialog extends StatefulWidget {
 class _PixelMapsDialogState extends State<PixelMapsDialog> {
   final List<String> _exportOptions = ['Selected Surfaces', 'All Surfaces'];
   String _selectedOption = 'Selected Surfaces';
-  final Map<int, bool> _selectedSurfaces = {}; // Track which surfaces are selected
+  final Map<int, bool> _selectedSurfaces =
+      {}; // Track which surfaces are selected
   String? _customLogoBase64;
   String? _customLogoFileName;
   bool _useDefaultLogo = true;
-  
+
   // Pixel-perfect options
   bool _usePixelPerfect = false;
-  final TextEditingController _widthController = TextEditingController(text: '4000');
-  final TextEditingController _heightController = TextEditingController(text: '2000');
+  final TextEditingController _widthController = TextEditingController(
+    text: '4000',
+  );
+  final TextEditingController _heightController = TextEditingController(
+    text: '2000',
+  );
   bool _showPanelNumbers = true;
   bool _showGrid = true;
 
@@ -116,19 +121,19 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                     // Export options
                     _buildExportOptions(),
                     const SizedBox(height: 20),
-                    
+
                     // Pixel-perfect options
                     _buildPixelPerfectOptions(),
                     const SizedBox(height: 20),
-                    
+
                     // Surface selection
                     Expanded(child: _buildSurfaceSelection()),
                     const SizedBox(height: 20),
-                    
+
                     // Custom logo section
                     _buildCustomLogoSection(),
                     const SizedBox(height: 20),
-                    
+
                     // Generate button
                     _buildGenerateButton(),
                   ],
@@ -160,23 +165,27 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
             const SizedBox(height: 10),
             Row(
               children: _exportOptions
-                  .map((option) => Expanded(
-                        child: RadioListTile<String>(
-                          title: Text(
-                            option,
-                            style: TextStyle(
-                              color: widget.isDarkMode ? Colors.white : Colors.black,
-                            ),
+                  .map(
+                    (option) => Expanded(
+                      child: RadioListTile<String>(
+                        title: Text(
+                          option,
+                          style: TextStyle(
+                            color: widget.isDarkMode
+                                ? Colors.white
+                                : Colors.black,
                           ),
-                          value: option,
-                          groupValue: _selectedOption,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedOption = value!;
-                            });
-                          },
                         ),
-                      ))
+                        value: option,
+                        groupValue: _selectedOption,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedOption = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -219,7 +228,9 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                 'Generate exact pixel dimensions for precise video mapping',
                 style: TextStyle(
                   fontSize: 12,
-                  color: widget.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                  color: widget.isDarkMode
+                      ? Colors.grey[300]
+                      : Colors.grey[600],
                 ),
               ),
               const SizedBox(height: 15),
@@ -232,7 +243,9 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                         labelText: 'Width (px)',
                         border: const OutlineInputBorder(),
                         labelStyle: TextStyle(
-                          color: widget.isDarkMode ? Colors.white : Colors.black,
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
                         ),
                       ),
                       style: TextStyle(
@@ -249,7 +262,9 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                         labelText: 'Height (px)',
                         border: const OutlineInputBorder(),
                         labelStyle: TextStyle(
-                          color: widget.isDarkMode ? Colors.white : Colors.black,
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
                         ),
                       ),
                       style: TextStyle(
@@ -268,7 +283,9 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                       title: Text(
                         'Show Panel Numbers',
                         style: TextStyle(
-                          color: widget.isDarkMode ? Colors.white : Colors.black,
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
                         ),
                       ),
                       value: _showPanelNumbers,
@@ -284,7 +301,9 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                       title: Text(
                         'Show Grid',
                         style: TextStyle(
-                          color: widget.isDarkMode ? Colors.white : Colors.black,
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
                         ),
                       ),
                       value: _showGrid,
@@ -336,7 +355,9 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                     subtitle: Text(
                       '${surface.width} x ${surface.height} panels',
                       style: TextStyle(
-                        color: widget.isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                        color: widget.isDarkMode
+                            ? Colors.grey[300]
+                            : Colors.grey[600],
                       ),
                     ),
                     value: _selectedSurfaces[index] ?? false,
@@ -447,9 +468,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
           backgroundColor: Colors.amber,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
           'Generate Pixel Maps',
@@ -482,10 +501,10 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
       for (int i = 0; i < surfacesToExport.length; i++) {
         final surface = surfacesToExport[i];
         final originalIndex = widget.surfaces.indexOf(surface);
-        
+
         final image = await _createPixelMapImage(surface, originalIndex);
         final fileName = _generateFileName(surface, originalIndex);
-        
+
         await _downloadImage(image, fileName);
       }
 
@@ -497,21 +516,38 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
 
   Future<ui.Image> _createPixelMapImage(Surface surface, int index) async {
     if (_usePixelPerfect) {
-      // Use the new pixel-perfect service
+      // Use the smart pixel-perfect service with cloud support
       final width = int.tryParse(_widthController.text) ?? 4000;
       final height = int.tryParse(_heightController.text) ?? 2000;
-      
-      return await PixelMapService.createPixelPerfectImage(
-        surface, 
-        index,
-        targetWidth: width,
-        targetHeight: height,
-        showPanelNumbers: _showPanelNumbers,
-        showGrid: _showGrid,
-      );
+
+      // Get bytes from smart service and convert to Image
+      final imageBytes =
+          await PixelMapService.createUltraPixelPerfectImageSmart(
+            surface,
+            index,
+            imageWidth: width,
+            imageHeight: height,
+            showPanelNumbers: _showPanelNumbers,
+            showGrid: _showGrid,
+          );
+
+      // Convert bytes to ui.Image
+      final codec = await ui.instantiateImageCodec(imageBytes);
+      final frame = await codec.getNextFrame();
+      return frame.image;
     } else {
-      // Use the standard high-quality service
-      return await PixelMapService.createPixelMapImage(surface, index);
+      // Use the smart standard service with cloud support
+      final imageBytes = await PixelMapService.createPixelMapImageSmart(
+        surface,
+        index,
+        showGrid: _showGrid,
+        showPanelNumbers: _showPanelNumbers,
+      );
+
+      // Convert bytes to ui.Image
+      final codec = await ui.instantiateImageCodec(imageBytes);
+      final frame = await codec.getNextFrame();
+      return frame.image;
     }
   }
 
@@ -537,11 +573,11 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
       if (byteData != null) {
         final blob = html.Blob([byteData.buffer.asUint8List()]);
         final url = html.Url.createObjectUrlFromBlob(blob);
-        
-        final anchor = html.AnchorElement(href: url)
+
+        html.AnchorElement(href: url)
           ..setAttribute('download', fileName)
           ..click();
-        
+
         html.Url.revokeObjectUrl(url);
       }
     } catch (e) {

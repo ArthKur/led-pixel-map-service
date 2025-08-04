@@ -3,8 +3,168 @@ import 'dart:typed_data';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/surface_model.dart';
+import 'cloud_pixel_map_service.dart';
 
 class PixelMapService {
+  // ALWAYS USE CLOUD SERVICE - All pixel maps generated on Render.com
+  static const int _canvasLimitThreshold =
+      0; // Force all to cloud (was 16M pixels)
+
+  /// All pixel map generation now happens on Render.com cloud service
+  /// This ensures consistent quality, no Canvas API limits, and native PNG output
+  static Future<Uint8List> createPixelMapImageSmart(
+    Surface surface,
+    int index, {
+    bool showGrid = true,
+    bool showPanelNumbers = true,
+  }) async {
+    if (surface.calculation == null) {
+      throw Exception('Surface calculation is null');
+    }
+
+    final calc = surface.calculation!;
+    final totalPixels = calc.pixelsWidth * calc.pixelsHeight;
+
+    debugPrint(
+      'Cloud Pixel Map: ${calc.pixelsWidth}×${calc.pixelsHeight} = $totalPixels pixels (all generated on Render.com)',
+    );
+
+    // ALL images use cloud service for consistent quality and no local limits
+    if (totalPixels > _canvasLimitThreshold) {
+      // Always true since threshold = 0
+      debugPrint(
+        'Generating on Render.com cloud service (${totalPixels} pixels)...',
+      );
+
+      try {
+        final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
+          surface,
+          index,
+          showGrid: showGrid,
+          showPanelNumbers: showPanelNumbers,
+        );
+
+        if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
+          debugPrint(
+            'Cloud generation successful: ${cloudResult.width}×${cloudResult.height}px (${cloudResult.fileSizeMB}MB)',
+          );
+          return cloudResult.imageBytes!;
+        } else {
+          debugPrint('Cloud generation failed: ${cloudResult.errorMessage}');
+          throw Exception(
+            'Cloud generation failed: ${cloudResult.errorMessage}',
+          );
+        }
+      } catch (e) {
+        debugPrint('Cloud service error: $e');
+        throw Exception(
+          'Failed to generate large pixel map via cloud service: $e',
+        );
+      }
+    } else {
+      debugPrint('All images now use cloud generation for consistency...');
+      try {
+        final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
+          surface,
+          index,
+          showGrid: showGrid,
+          showPanelNumbers: showPanelNumbers,
+        );
+
+        if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
+          debugPrint(
+            'Cloud generation successful: ${cloudResult.width}×${cloudResult.height}px (${cloudResult.fileSizeMB}MB)',
+          );
+          return cloudResult.imageBytes!;
+        } else {
+          debugPrint('Cloud generation failed: ${cloudResult.errorMessage}');
+          throw Exception(
+            'Cloud generation failed: ${cloudResult.errorMessage}',
+          );
+        }
+      } catch (e) {
+        debugPrint('Cloud service error: $e');
+        throw Exception('Failed to generate pixel map via cloud service: $e');
+      }
+    }
+  }
+
+  /// Smart ultra-high-quality pixel-perfect generation
+  static Future<Uint8List> createUltraPixelPerfectImageSmart(
+    Surface surface,
+    int index, {
+    required int imageWidth,
+    required int imageHeight,
+    bool showPanelNumbers = true,
+    bool showGrid = true,
+  }) async {
+    final totalPixels = imageWidth * imageHeight;
+
+    debugPrint(
+      'Smart Ultra Pixel Perfect: ${imageWidth}×${imageHeight} = $totalPixels pixels',
+    );
+
+    // For large images, use cloud service
+    if (totalPixels > _canvasLimitThreshold) {
+      debugPrint(
+        'Large ultra image detected ($totalPixels pixels), using cloud service...',
+      );
+
+      try {
+        final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
+          surface,
+          index,
+          showGrid: showGrid,
+          showPanelNumbers: showPanelNumbers,
+        );
+
+        if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
+          debugPrint(
+            'Cloud ultra generation successful: ${cloudResult.width}×${cloudResult.height}px (${cloudResult.fileSizeMB}MB)',
+          );
+          return cloudResult.imageBytes!;
+        } else {
+          debugPrint(
+            'Cloud ultra generation failed: ${cloudResult.errorMessage}',
+          );
+          throw Exception(
+            'Cloud ultra generation failed: ${cloudResult.errorMessage}',
+          );
+        }
+      } catch (e) {
+        debugPrint('Cloud ultra service error: $e');
+        throw Exception(
+          'Failed to generate ultra large pixel map via cloud service: $e',
+        );
+      }
+    } else {
+      debugPrint('All images now use cloud generation for consistency...');
+      try {
+        final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
+          surface,
+          index,
+          showGrid: showGrid,
+          showPanelNumbers: showPanelNumbers,
+        );
+
+        if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
+          debugPrint(
+            'Cloud generation successful: ${cloudResult.width}×${cloudResult.height}px (${cloudResult.fileSizeMB}MB)',
+          );
+          return cloudResult.imageBytes!;
+        } else {
+          debugPrint('Cloud generation failed: ${cloudResult.errorMessage}');
+          throw Exception(
+            'Cloud generation failed: ${cloudResult.errorMessage}',
+          );
+        }
+      } catch (e) {
+        debugPrint('Cloud service error: $e');
+        throw Exception('Failed to generate pixel map via cloud service: $e');
+      }
+    }
+  }
+
   // Original canvas-based method for display/preview
   static Future<Uint8List> createPixelMapImage(
     Surface surface,
@@ -34,15 +194,18 @@ class PixelMapService {
     // For InfiLED: full panels are 1000mm, half panels are 500mm
     // We need to calculate the proportional heights
     final double fullPanelRatio = 1.0; // Full panels are the reference
-    final double halfPanelRatio = 0.5; // Half panels are 50% height of full panels
-    
+    final double halfPanelRatio =
+        0.5; // Half panels are 50% height of full panels
+
     // Calculate total height units (full panels count as 1.0, half panels as 0.5)
-    final double totalHeightUnits = (fullPanelsHeight * fullPanelRatio) + (halfPanelsHeight * halfPanelRatio);
-    
+    final double totalHeightUnits =
+        (fullPanelsHeight * fullPanelRatio) +
+        (halfPanelsHeight * halfPanelRatio);
+
     // Calculate cell sizes
     final double cellWidth = availableWidth / panelsWidth;
     final double fullPanelCellHeight = availableHeight / totalHeightUnits;
-    
+
     // Use the width-constrained size to maintain proper proportions
     final double cellSize = math.min(cellWidth, fullPanelCellHeight);
     final double adjustedFullPanelHeight = cellSize;
@@ -50,7 +213,9 @@ class PixelMapService {
 
     // Calculate actual grid dimensions
     final double gridWidth = panelsWidth * cellSize;
-    final double gridHeight = (fullPanelsHeight * adjustedFullPanelHeight) + (halfPanelsHeight * adjustedHalfPanelHeight);
+    final double gridHeight =
+        (fullPanelsHeight * adjustedFullPanelHeight) +
+        (halfPanelsHeight * adjustedHalfPanelHeight);
     final double gridStartX = (canvasWidth - gridWidth) / 2;
     final double gridStartY = (canvasHeight - gridHeight) / 2;
 
@@ -69,14 +234,17 @@ class PixelMapService {
 
     // Enhanced diagonal lines with anti-aliasing and gradients
     final diagonalPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          const Color(0xFFC7B299).withOpacity(0.6),
-          const Color(0xFFC7B299).withOpacity(0.3),
-        ],
-      ).createShader(Rect.fromLTWH(gridStartX, gridStartY, gridWidth, gridHeight))
+      ..shader =
+          LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFFC7B299).withOpacity(0.6),
+              const Color(0xFFC7B299).withOpacity(0.3),
+            ],
+          ).createShader(
+            Rect.fromLTWH(gridStartX, gridStartY, gridWidth, gridHeight),
+          )
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round
       ..isAntiAlias = true;
@@ -197,7 +365,7 @@ class PixelMapService {
   static Future<Uint8List> createUltraPixelPerfectImage(
     Surface surface,
     int index, {
-    required int imageWidth,  // Exact pixel width (e.g., 1920)
+    required int imageWidth, // Exact pixel width (e.g., 1920)
     required int imageHeight, // Exact pixel height (e.g., 1080)
     bool showPanelNumbers = true,
     bool showGrid = true,
@@ -235,7 +403,7 @@ class PixelMapService {
     // Ultra-crisp panel colors for maximum visibility
     final panelColors = [
       const Color(0xFF2D1B69), // Deep purple
-      const Color(0xFF1B5E20), // Deep green  
+      const Color(0xFF1B5E20), // Deep green
       const Color(0xFF0D47A1), // Deep blue
       const Color(0xFFE65100), // Deep orange
       const Color(0xFFBF360C), // Deep red
@@ -250,12 +418,14 @@ class PixelMapService {
       for (int col = 0; col < panelsWidth; col++) {
         final double exactX = col * pixelsPerPanelWidth;
         final double exactY = currentY;
-        
+
         // Round to exact pixel boundaries for perfect alignment
         final int pixelX = exactX.floor();
         final int pixelY = exactY.floor();
-        final int pixelWidth = ((col + 1) * pixelsPerPanelWidth).floor() - pixelX;
-        final int pixelHeight = (exactY + fullPanelPixelHeight).floor() - pixelY;
+        final int pixelWidth =
+            ((col + 1) * pixelsPerPanelWidth).floor() - pixelX;
+        final int pixelHeight =
+            (exactY + fullPanelPixelHeight).floor() - pixelY;
 
         // Select high-contrast color
         final colorIndex = (globalRow + col) % panelColors.length;
@@ -269,10 +439,10 @@ class PixelMapService {
 
         canvas.drawRect(
           Rect.fromLTWH(
-            pixelX.toDouble(), 
-            pixelY.toDouble(), 
-            pixelWidth.toDouble(), 
-            pixelHeight.toDouble()
+            pixelX.toDouble(),
+            pixelY.toDouble(),
+            pixelWidth.toDouble(),
+            pixelHeight.toDouble(),
           ),
           panelPaint,
         );
@@ -287,10 +457,10 @@ class PixelMapService {
 
           canvas.drawRect(
             Rect.fromLTWH(
-              pixelX.toDouble(), 
+              pixelX.toDouble(),
               pixelY.toDouble(),
-              pixelWidth.toDouble(), 
-              pixelHeight.toDouble()
+              pixelWidth.toDouble(),
+              pixelHeight.toDouble(),
             ),
             gridPaint,
           );
@@ -299,8 +469,10 @@ class PixelMapService {
         // Draw ultra-crisp panel numbers
         if (showPanelNumbers) {
           final panelText = '${globalRow + 1}.${col + 1}';
-          final fontSize = math.max(math.min(pixelWidth * 0.2, pixelHeight * 0.4), 12).toDouble();
-          
+          final fontSize = math
+              .max(math.min(pixelWidth * 0.2, pixelHeight * 0.4), 12)
+              .toDouble();
+
           if (fontSize >= 12 && pixelWidth > 50 && pixelHeight > 30) {
             final textPainter = TextPainter(
               text: TextSpan(
@@ -319,7 +491,7 @@ class PixelMapService {
             // Position in top-left with small margin
             final textX = pixelX + 3.0;
             final textY = pixelY + 3.0;
-            
+
             if (textX + textPainter.width < pixelX + pixelWidth - 3 &&
                 textY + textPainter.height < pixelY + pixelHeight - 3) {
               textPainter.paint(canvas, Offset(textX, textY));
@@ -336,12 +508,14 @@ class PixelMapService {
       for (int col = 0; col < panelsWidth; col++) {
         final double exactX = col * pixelsPerPanelWidth;
         final double exactY = currentY;
-        
+
         // Round to exact pixel boundaries
         final int pixelX = exactX.floor();
         final int pixelY = exactY.floor();
-        final int pixelWidth = ((col + 1) * pixelsPerPanelWidth).floor() - pixelX;
-        final int pixelHeight = (exactY + halfPanelPixelHeight).floor() - pixelY;
+        final int pixelWidth =
+            ((col + 1) * pixelsPerPanelWidth).floor() - pixelX;
+        final int pixelHeight =
+            (exactY + halfPanelPixelHeight).floor() - pixelY;
 
         // Select high-contrast color
         final colorIndex = (globalRow + col) % panelColors.length;
@@ -355,10 +529,10 @@ class PixelMapService {
 
         canvas.drawRect(
           Rect.fromLTWH(
-            pixelX.toDouble(), 
-            pixelY.toDouble(), 
-            pixelWidth.toDouble(), 
-            pixelHeight.toDouble()
+            pixelX.toDouble(),
+            pixelY.toDouble(),
+            pixelWidth.toDouble(),
+            pixelHeight.toDouble(),
           ),
           panelPaint,
         );
@@ -373,10 +547,10 @@ class PixelMapService {
 
           canvas.drawRect(
             Rect.fromLTWH(
-              pixelX.toDouble(), 
+              pixelX.toDouble(),
               pixelY.toDouble(),
-              pixelWidth.toDouble(), 
-              pixelHeight.toDouble()
+              pixelWidth.toDouble(),
+              pixelHeight.toDouble(),
             ),
             gridPaint,
           );
@@ -385,8 +559,11 @@ class PixelMapService {
         // Draw panel numbers for half panels
         if (showPanelNumbers) {
           final panelText = '${globalRow + 1}.${col + 1}';
-          final fontSize = math.max(math.min(pixelWidth * 0.25, pixelHeight * 0.6), 10);
-          
+          final fontSize = math.max(
+            math.min(pixelWidth * 0.25, pixelHeight * 0.6),
+            10,
+          );
+
           if (fontSize >= 10 && pixelWidth > 40 && pixelHeight > 20) {
             final textPainter = TextPainter(
               text: TextSpan(
@@ -404,7 +581,7 @@ class PixelMapService {
 
             final textX = pixelX + 2.0;
             final textY = pixelY + 2.0;
-            
+
             if (textX + textPainter.width < pixelX + pixelWidth - 2 &&
                 textY + textPainter.height < pixelY + pixelHeight - 2) {
               textPainter.paint(canvas, Offset(textX, textY));
@@ -420,7 +597,7 @@ class PixelMapService {
     if (showPanelNumbers) {
       final pixelInfoText = '$imageWidth×${imageHeight}px';
       final overlaySize = math.max(imageWidth * 0.025, 16);
-      
+
       final textPainter = TextPainter(
         text: TextSpan(
           text: pixelInfoText,
@@ -441,7 +618,7 @@ class PixelMapService {
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
-      
+
       final textX = canvasWidth - textPainter.width - 15;
       final textY = canvasHeight - textPainter.height - 15;
       textPainter.paint(canvas, Offset(textX, textY));
@@ -459,7 +636,7 @@ class PixelMapService {
   static Future<Uint8List> createPixelPerfectImage(
     Surface surface,
     int index, {
-    required int imageWidth,  // Exact pixel width (e.g., 4000)
+    required int imageWidth, // Exact pixel width (e.g., 4000)
     required int imageHeight, // Exact pixel height (e.g., 2000)
     bool showPanelNumbers = true,
     bool showGrid = true,
@@ -487,7 +664,8 @@ class PixelMapService {
 
     // Calculate pixels per panel (exact division)
     final double pixelsPerPanelWidth = canvasWidth / panelsWidth;
-    final double fullPanelPixelHeight = canvasHeight / (fullPanelsHeight + (halfPanelsHeight * 0.5));
+    final double fullPanelPixelHeight =
+        canvasHeight / (fullPanelsHeight + (halfPanelsHeight * 0.5));
     final double halfPanelPixelHeight = fullPanelPixelHeight * 0.5;
 
     // Draw pixel-perfect LED panels
@@ -511,7 +689,10 @@ class PixelMapService {
           text: pixelInfoText,
           style: TextStyle(
             color: Colors.white.withOpacity(0.8),
-            fontSize: math.max(imageWidth * 0.02, 12), // Scale font with image size
+            fontSize: math.max(
+              imageWidth * 0.02,
+              12,
+            ), // Scale font with image size
             fontWeight: FontWeight.bold,
             shadows: [
               Shadow(
@@ -525,7 +706,7 @@ class PixelMapService {
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
-      
+
       // Position in bottom-right corner
       final textX = canvasWidth - textPainter.width - 20;
       final textY = canvasHeight - textPainter.height - 20;
@@ -569,12 +750,13 @@ class PixelMapService {
       for (int col = 0; col < panelsWidth; col++) {
         final double panelX = col * pixelsPerPanelWidth;
         final double panelY = currentY;
-        
+
         // Calculate exact pixel boundaries (rounded to ensure sharp edges)
         final int pixelX = panelX.round();
         final int pixelY = panelY.round();
         final int pixelWidth = (panelX + pixelsPerPanelWidth).round() - pixelX;
-        final int pixelHeight = (panelY + fullPanelPixelHeight).round() - pixelY;
+        final int pixelHeight =
+            (panelY + fullPanelPixelHeight).round() - pixelY;
 
         // Select panel color based on position
         final colorIndex = (globalRow + col) % panelColors.length;
@@ -586,8 +768,12 @@ class PixelMapService {
           ..style = PaintingStyle.fill;
 
         canvas.drawRect(
-          Rect.fromLTWH(pixelX.toDouble(), pixelY.toDouble(), 
-                       pixelWidth.toDouble(), pixelHeight.toDouble()),
+          Rect.fromLTWH(
+            pixelX.toDouble(),
+            pixelY.toDouble(),
+            pixelWidth.toDouble(),
+            pixelHeight.toDouble(),
+          ),
           panelPaint,
         );
 
@@ -599,8 +785,12 @@ class PixelMapService {
             ..style = PaintingStyle.stroke;
 
           canvas.drawRect(
-            Rect.fromLTWH(pixelX.toDouble(), pixelY.toDouble(),
-                         pixelWidth.toDouble(), pixelHeight.toDouble()),
+            Rect.fromLTWH(
+              pixelX.toDouble(),
+              pixelY.toDouble(),
+              pixelWidth.toDouble(),
+              pixelHeight.toDouble(),
+            ),
             gridPaint,
           );
         }
@@ -609,8 +799,9 @@ class PixelMapService {
         if (showPanelNumbers) {
           final panelText = '${globalRow + 1}.${col + 1}';
           final fontSize = math.min(pixelWidth * 0.15, pixelHeight * 0.3);
-          
-          if (fontSize > 8) { // Only draw if text will be readable
+
+          if (fontSize > 8) {
+            // Only draw if text will be readable
             final textPainter = TextPainter(
               text: TextSpan(
                 text: panelText,
@@ -627,7 +818,7 @@ class PixelMapService {
             // Position in top-left corner of panel
             final textX = pixelX + 4.0;
             final textY = pixelY + 4.0;
-            
+
             // Only draw if text fits within panel
             if (textX + textPainter.width < pixelX + pixelWidth &&
                 textY + textPainter.height < pixelY + pixelHeight) {
@@ -645,12 +836,13 @@ class PixelMapService {
       for (int col = 0; col < panelsWidth; col++) {
         final double panelX = col * pixelsPerPanelWidth;
         final double panelY = currentY;
-        
+
         // Calculate exact pixel boundaries for half panels
         final int pixelX = panelX.round();
         final int pixelY = panelY.round();
         final int pixelWidth = (panelX + pixelsPerPanelWidth).round() - pixelX;
-        final int pixelHeight = (panelY + halfPanelPixelHeight).round() - pixelY;
+        final int pixelHeight =
+            (panelY + halfPanelPixelHeight).round() - pixelY;
 
         // Select panel color based on position
         final colorIndex = (globalRow + col) % panelColors.length;
@@ -662,8 +854,12 @@ class PixelMapService {
           ..style = PaintingStyle.fill;
 
         canvas.drawRect(
-          Rect.fromLTWH(pixelX.toDouble(), pixelY.toDouble(),
-                       pixelWidth.toDouble(), pixelHeight.toDouble()),
+          Rect.fromLTWH(
+            pixelX.toDouble(),
+            pixelY.toDouble(),
+            pixelWidth.toDouble(),
+            pixelHeight.toDouble(),
+          ),
           panelPaint,
         );
 
@@ -675,8 +871,12 @@ class PixelMapService {
             ..style = PaintingStyle.stroke;
 
           canvas.drawRect(
-            Rect.fromLTWH(pixelX.toDouble(), pixelY.toDouble(),
-                         pixelWidth.toDouble(), pixelHeight.toDouble()),
+            Rect.fromLTWH(
+              pixelX.toDouble(),
+              pixelY.toDouble(),
+              pixelWidth.toDouble(),
+              pixelHeight.toDouble(),
+            ),
             gridPaint,
           );
         }
@@ -685,8 +885,9 @@ class PixelMapService {
         if (showPanelNumbers) {
           final panelText = '${globalRow + 1}.${col + 1}';
           final fontSize = math.min(pixelWidth * 0.15, pixelHeight * 0.4);
-          
-          if (fontSize > 6) { // Smaller threshold for half panels
+
+          if (fontSize > 6) {
+            // Smaller threshold for half panels
             final textPainter = TextPainter(
               text: TextSpan(
                 text: panelText,
@@ -703,7 +904,7 @@ class PixelMapService {
             // Position in top-left corner of half panel
             final textX = pixelX + 2.0;
             final textY = pixelY + 2.0;
-            
+
             // Only draw if text fits within panel
             if (textX + textPainter.width < pixelX + pixelWidth &&
                 textY + textPainter.height < pixelY + pixelHeight) {
@@ -764,7 +965,7 @@ class PixelMapService {
         // Select enhanced color with gradient based on position
         final colorIndex = (globalRow + col) % baseColors.length;
         final baseColor = baseColors[colorIndex];
-        
+
         // Create gradient paint for this panel
         final gradient = LinearGradient(
           begin: Alignment.topLeft,
@@ -784,7 +985,10 @@ class PixelMapService {
 
         // Draw shadow first for depth
         final shadowRect = Rect.fromLTWH(
-          left + 1.5, top + 1.5, cellWidth, fullPanelHeight
+          left + 1.5,
+          top + 1.5,
+          cellWidth,
+          fullPanelHeight,
         );
         canvas.drawRRect(
           RRect.fromRectAndRadius(shadowRect, const Radius.circular(4)),
@@ -792,7 +996,10 @@ class PixelMapService {
         );
 
         // Draw enhanced panel with rounded corners
-        final panelRect = RRect.fromRectAndRadius(rect, const Radius.circular(4));
+        final panelRect = RRect.fromRectAndRadius(
+          rect,
+          const Radius.circular(4),
+        );
         canvas.drawRRect(panelRect, panelPaint);
 
         // Draw enhanced border
@@ -805,7 +1012,8 @@ class PixelMapService {
             text: panelText,
             style: TextStyle(
               color: Colors.white,
-              fontSize: cellWidth * 0.1, // Slightly larger for better visibility
+              fontSize:
+                  cellWidth * 0.1, // Slightly larger for better visibility
               fontWeight: FontWeight.w600,
               shadows: [
                 Shadow(
@@ -839,7 +1047,7 @@ class PixelMapService {
         // Select enhanced color with gradient based on position
         final colorIndex = (globalRow + col) % baseColors.length;
         final baseColor = baseColors[colorIndex];
-        
+
         // Create gradient paint for this panel
         final gradient = LinearGradient(
           begin: Alignment.topLeft,
@@ -859,7 +1067,10 @@ class PixelMapService {
 
         // Draw shadow first for depth
         final shadowRect = Rect.fromLTWH(
-          left + 1.5, top + 1.5, cellWidth, halfPanelHeight
+          left + 1.5,
+          top + 1.5,
+          cellWidth,
+          halfPanelHeight,
         );
         canvas.drawRRect(
           RRect.fromRectAndRadius(shadowRect, const Radius.circular(4)),
@@ -867,7 +1078,10 @@ class PixelMapService {
         );
 
         // Draw enhanced panel with rounded corners
-        final panelRect = RRect.fromRectAndRadius(rect, const Radius.circular(4));
+        final panelRect = RRect.fromRectAndRadius(
+          rect,
+          const Radius.circular(4),
+        );
         canvas.drawRRect(panelRect, panelPaint);
 
         // Draw enhanced border
@@ -880,7 +1094,8 @@ class PixelMapService {
             text: panelText,
             style: TextStyle(
               color: Colors.white,
-              fontSize: cellWidth * 0.1, // Slightly larger for better visibility
+              fontSize:
+                  cellWidth * 0.1, // Slightly larger for better visibility
               fontWeight: FontWeight.w600,
               shadows: [
                 Shadow(
@@ -913,7 +1128,7 @@ class PixelMapService {
     double height = 180,
   }) {
     return FutureBuilder<Uint8List>(
-      future: createPixelMapImage(surface, index),
+      future: createPixelMapImageSmart(surface, index),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return SizedBox(
