@@ -26,8 +26,8 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.4 - Surface-Width Smart Scaling: Optimized panel numbering for different surface widths',
-        'message': 'Red/Grey alternating pattern with surface-width optimized panel numbers',
+        'version': '10.5 - Fixed Font Scale: Consistent panel numbering size across all surface dimensions',
+        'message': 'Red/Grey alternating pattern with fixed 7% font scale for consistent readability',
         'features': 'Surface-width based font scaling, no backgrounds, pure black text',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
         'timestamp': '2025-08-04-09:00'
@@ -82,38 +82,25 @@ def generate_pixel_map():
         # Use high-quality drawing context for precise rendering
         draw = ImageDraw.Draw(image, 'RGB')  # Ensure RGB consistency
         
-        # Smart font size calculation for panel numbers
-        # Scale intelligently based on surface width (panel count) for optimal readability
+        # FIXED font size calculation for panel numbers
+        # Always use the same font scale that looks good on 40m wide surfaces (80 panels)
+        # User preference: consistent numbering size regardless of canvas size
         
         # Base font size calculation
         base_panel_size = min(panel_display_width, panel_display_height)
         
-        # NEW: Scale based on number of panels horizontally for better surface width adaptation
-        # This addresses the issue where 10m surfaces have tiny text and 100m surfaces have huge text
+        # FIXED SCALE: Use the scale factor that works well for 40m wide surfaces
+        # At 40m width (80 panels), user confirmed font size is perfect
+        # Using 7% scale factor (0.07) which was optimal for 51-100 panel range
+        font_scale_factor = 0.07  # Fixed 7% - consistent across all surface sizes
         
-        if panels_width <= 20:  # Small surface (up to ~20 panels wide)
-            font_scale_factor = 0.15  # 15% of panel size - larger for visibility
-        elif panels_width <= 50:  # Medium surface (21-50 panels wide) 
-            font_scale_factor = 0.10  # 10% of panel size - balanced
-        elif panels_width <= 100:  # Large surface (51-100 panels wide)
-            font_scale_factor = 0.07  # 7% of panel size - smaller for clarity
-        elif panels_width <= 200:  # Very large surface (101-200 panels wide)
-            font_scale_factor = 0.05  # 5% of panel size - much smaller
-        else:  # Massive surface (200+ panels wide)
-            font_scale_factor = 0.03  # 3% of panel size - minimal for huge surfaces
-        
-        # Also consider total pixels for extreme cases
-        total_pixels = display_width * display_height
-        if total_pixels > 50000000:  # Extreme canvas size adjustment
-            font_scale_factor *= 0.7  # Further reduce for massive canvases
-        
-        # Calculate font size with intelligent bounds
+        # Calculate font size with this fixed scale
         calculated_font_size = int(base_panel_size * font_scale_factor)
         
-        # Set reasonable bounds: minimum 8px, maximum 40px (reduced max for large surfaces)
-        panel_font_size = max(8, min(40, calculated_font_size))
+        # Set reasonable bounds: minimum 6px (allow smaller), maximum 60px (allow larger for consistency)
+        panel_font_size = max(6, min(60, calculated_font_size))
         
-        print(f"Font scaling: {panels_width} panels wide → scale {font_scale_factor} → size {panel_font_size}px")
+        print(f"Fixed font scaling: 7% scale factor → size {panel_font_size}px (consistent across all surfaces)")
         
         # Load high-quality TrueType fonts with better error handling
         panel_font = None
