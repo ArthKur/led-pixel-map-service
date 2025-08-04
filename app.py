@@ -26,8 +26,8 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.5 - Fixed Font Scale: Consistent panel numbering size across all surface dimensions',
-        'message': 'Red/Grey alternating pattern with fixed 7% font scale for consistent readability',
+        'version': '10.6 - Panel-Based Font Scale: Font size based on individual panel pixel dimensions',
+        'message': 'Red/Grey alternating pattern with panel-pixel-based font scaling for true consistency',
         'features': 'Surface-width based font scaling, no backgrounds, pure black text',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
         'timestamp': '2025-08-04-09:00'
@@ -82,25 +82,28 @@ def generate_pixel_map():
         # Use high-quality drawing context for precise rendering
         draw = ImageDraw.Draw(image, 'RGB')  # Ensure RGB consistency
         
-        # FIXED font size calculation for panel numbers
-        # Always use the same font scale that looks good on 40m wide surfaces (80 panels)
-        # User preference: consistent numbering size regardless of canvas size
+        # FIXED font size calculation based on ORIGINAL panel pixel size
+        # User preference: consistent numbering size based on panel dimensions, not surface width
+        # Reference: 20-panel wide surface (10m) with 100px panels had perfect font size
         
-        # Base font size calculation
-        base_panel_size = min(panel_display_width, panel_display_height)
+        # Use ORIGINAL panel pixel dimensions, not display-scaled dimensions
+        original_panel_size = min(panel_pixel_width, panel_pixel_height)
         
-        # FIXED SCALE: Use the scale factor that works well for 40m wide surfaces
-        # At 40m width (80 panels), user confirmed font size is perfect
-        # Using 7% scale factor (0.07) which was optimal for 51-100 panel range
-        font_scale_factor = 0.07  # Fixed 7% - consistent across all surface sizes
+        # Calculate optimal font scale based on the reference configuration:
+        # 20 panels wide, 100px panels → good font size
+        # From user feedback: 100px panel should have specific font size
+        # Reverse engineering: if 100px panel looks good with ~7px font, that's 7% scale
+        reference_panel_size = 100  # Reference panel size (100px from good test)
+        reference_font_scale = 0.07  # 7% scale that looked good
         
-        # Calculate font size with this fixed scale
-        calculated_font_size = int(base_panel_size * font_scale_factor)
+        # Calculate font size directly from original panel pixel size
+        # This ensures consistent font size regardless of display scaling or surface width
+        calculated_font_size = int(original_panel_size * reference_font_scale)
         
-        # Set reasonable bounds: minimum 6px (allow smaller), maximum 60px (allow larger for consistency)
-        panel_font_size = max(6, min(60, calculated_font_size))
+        # Set reasonable bounds: minimum 4px, maximum 80px
+        panel_font_size = max(4, min(80, calculated_font_size))
         
-        print(f"Fixed font scaling: 7% scale factor → size {panel_font_size}px (consistent across all surfaces)")
+        print(f"Panel-based font scaling: {original_panel_size}px panel → {panel_font_size}px font (7% of panel size)")
         
         # Load high-quality TrueType fonts with better error handling
         panel_font = None
