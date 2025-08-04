@@ -26,11 +26,11 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.3 - Clean Black Text: Removed backgrounds, always black font',
-        'message': 'Red/Grey alternating pattern with clean black panel numbers',
-        'features': 'Smart font scaling, no backgrounds, pure black text',
+        'version': '10.4 - Surface-Width Smart Scaling: Optimized panel numbering for different surface widths',
+        'message': 'Red/Grey alternating pattern with surface-width optimized panel numbers',
+        'features': 'Surface-width based font scaling, no backgrounds, pure black text',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
-        'timestamp': '2025-08-04-08:00'
+        'timestamp': '2025-08-04-09:00'
     })
 
 @app.route('/test')
@@ -83,33 +83,37 @@ def generate_pixel_map():
         draw = ImageDraw.Draw(image, 'RGB')  # Ensure RGB consistency
         
         # Smart font size calculation for panel numbers
-        # Scale intelligently based on both panel size AND total canvas size
+        # Scale intelligently based on surface width (panel count) for optimal readability
         
         # Base font size calculation
         base_panel_size = min(panel_display_width, panel_display_height)
         
-        # Calculate scaling factor based on total canvas size
-        total_pixels = display_width * display_height
+        # NEW: Scale based on number of panels horizontally for better surface width adaptation
+        # This addresses the issue where 10m surfaces have tiny text and 100m surfaces have huge text
         
-        # Define scaling tiers for different canvas sizes
-        if total_pixels <= 1000000:  # Small canvas (up to ~1000x1000)
-            font_scale_factor = 0.12  # 12% of panel size
-        elif total_pixels <= 4000000:  # Medium canvas (up to ~2000x2000) 
-            font_scale_factor = 0.08  # 8% of panel size
-        elif total_pixels <= 16000000:  # Large canvas (up to ~4000x4000)
-            font_scale_factor = 0.05  # 5% of panel size
-        elif total_pixels <= 64000000:  # Very large canvas (up to ~8000x8000)
-            font_scale_factor = 0.03  # 3% of panel size
-        else:  # Massive canvas (40000x10000+)
-            font_scale_factor = 0.015  # 1.5% of panel size for readability
+        if panels_width <= 20:  # Small surface (up to ~20 panels wide)
+            font_scale_factor = 0.15  # 15% of panel size - larger for visibility
+        elif panels_width <= 50:  # Medium surface (21-50 panels wide) 
+            font_scale_factor = 0.10  # 10% of panel size - balanced
+        elif panels_width <= 100:  # Large surface (51-100 panels wide)
+            font_scale_factor = 0.07  # 7% of panel size - smaller for clarity
+        elif panels_width <= 200:  # Very large surface (101-200 panels wide)
+            font_scale_factor = 0.05  # 5% of panel size - much smaller
+        else:  # Massive surface (200+ panels wide)
+            font_scale_factor = 0.03  # 3% of panel size - minimal for huge surfaces
+        
+        # Also consider total pixels for extreme cases
+        total_pixels = display_width * display_height
+        if total_pixels > 50000000:  # Extreme canvas size adjustment
+            font_scale_factor *= 0.7  # Further reduce for massive canvases
         
         # Calculate font size with intelligent bounds
         calculated_font_size = int(base_panel_size * font_scale_factor)
         
-        # Set reasonable bounds: minimum 8px, maximum 50px
-        panel_font_size = max(8, min(50, calculated_font_size))
+        # Set reasonable bounds: minimum 8px, maximum 40px (reduced max for large surfaces)
+        panel_font_size = max(8, min(40, calculated_font_size))
         
-        print(f"Font scaling: {total_pixels:,} pixels → scale {font_scale_factor} → size {panel_font_size}px")
+        print(f"Font scaling: {panels_width} panels wide → scale {font_scale_factor} → size {panel_font_size}px")
         
         # Load high-quality TrueType fonts with better error handling
         panel_font = None
