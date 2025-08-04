@@ -26,10 +26,11 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.1 - Red/Grey Color Scheme: Alternating full red and medium grey panels',
-        'message': 'Direct PNG generation with red/grey alternating pattern - no SVG conversion quality loss',
+        'version': '10.2 - Smart Panel Number Scaling: Intelligent font sizing for any canvas size',
+        'message': 'Red/Grey alternating pattern with smart-scaled panel numbers',
+        'features': 'Adaptive font scaling, high-contrast backgrounds, optimal readability',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
-        'timestamp': '2025-08-04-06:00'
+        'timestamp': '2025-08-04-07:00'
     })
 
 @app.route('/test')
@@ -81,8 +82,34 @@ def generate_pixel_map():
         # Use high-quality drawing context for precise rendering
         draw = ImageDraw.Draw(image, 'RGB')  # Ensure RGB consistency
         
-        # Calculate font sizes - smaller panel numbers, no transparency texts
-        panel_font_size = max(12, int(min(panel_display_width, panel_display_height) * 0.08))  # 8% of panel size, minimum 12px
+        # Smart font size calculation for panel numbers
+        # Scale intelligently based on both panel size AND total canvas size
+        
+        # Base font size calculation
+        base_panel_size = min(panel_display_width, panel_display_height)
+        
+        # Calculate scaling factor based on total canvas size
+        total_pixels = display_width * display_height
+        
+        # Define scaling tiers for different canvas sizes
+        if total_pixels <= 1000000:  # Small canvas (up to ~1000x1000)
+            font_scale_factor = 0.12  # 12% of panel size
+        elif total_pixels <= 4000000:  # Medium canvas (up to ~2000x2000) 
+            font_scale_factor = 0.08  # 8% of panel size
+        elif total_pixels <= 16000000:  # Large canvas (up to ~4000x4000)
+            font_scale_factor = 0.05  # 5% of panel size
+        elif total_pixels <= 64000000:  # Very large canvas (up to ~8000x8000)
+            font_scale_factor = 0.03  # 3% of panel size
+        else:  # Massive canvas (40000x10000+)
+            font_scale_factor = 0.015  # 1.5% of panel size for readability
+        
+        # Calculate font size with intelligent bounds
+        calculated_font_size = int(base_panel_size * font_scale_factor)
+        
+        # Set reasonable bounds: minimum 8px, maximum 50px
+        panel_font_size = max(8, min(50, calculated_font_size))
+        
+        print(f"Font scaling: {total_pixels:,} pixels → scale {font_scale_factor} → size {panel_font_size}px")
         
         # Load high-quality TrueType fonts with better error handling
         panel_font = None
@@ -167,16 +194,32 @@ def generate_pixel_map():
                     
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # Position in top-left corner with margin
-                    margin = max(6, int(panel_display_width * 0.04))  # 4% margin
+                    # Smart margin calculation - proportional to font size, not panel size
+                    # This ensures consistent text positioning regardless of canvas scale
+                    margin = max(2, int(panel_font_size * 0.3))  # 30% of font size, minimum 2px
                     text_x = x + margin
                     text_y = y + margin
                     
-                    # Draw simple black text
+                    # Draw text with high contrast background for readability
                     if panel_font:
+                        # Get text dimensions for background rectangle
+                        bbox = draw.textbbox((text_x, text_y), panel_number, font=panel_font)
+                        
+                        # Draw white background rectangle with small padding
+                        padding = max(1, int(panel_font_size * 0.1))
+                        bg_rect = [
+                            bbox[0] - padding, 
+                            bbox[1] - padding,
+                            bbox[2] + padding, 
+                            bbox[3] + padding
+                        ]
+                        draw.rectangle(bg_rect, fill='white', outline='black', width=1)
+                        
+                        # Draw black text on white background
                         draw.text((text_x, text_y), panel_number, fill='black', font=panel_font)
                     else:
-                        draw.text((text_x, text_y), panel_number, fill='black')
+                        # Fallback without font
+                        draw.text((text_x, text_y), panel_number, fill='white')
         
         # Generate NATIVE PNG with maximum quality and precision
         # No SVG conversion - direct PNG generation for Flutter
