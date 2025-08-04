@@ -26,9 +26,9 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.10 - Balanced Quality: 6000×6000 max for stable sharp images',
-        'message': 'Red/Grey alternating pattern with surface-size-based font scaling and improved image quality',
-        'features': 'Surface-width based font scaling, no backgrounds, pure black text',
+        'version': '11.0 - PIXEL-PERFECT: Full resolution generation without scaling for maximum quality',
+        'message': 'No scaling, pixel-perfect generation for crisp fonts and perfect panel definition',
+        'features': 'Full resolution, surface-based font scaling, pixel-perfect quality',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
         'timestamp': '2025-08-04-09:00'
     })
@@ -59,24 +59,27 @@ def generate_pixel_map():
         total_width = panels_width * panel_pixel_width
         total_height = panels_height * panel_pixel_height
         
-        # For very large images, create a manageable size for display
-        # BALANCED limits for good quality without overwhelming the server
-        # 50m×50m = 20,000×20,000px original → target ~6000px output for good balance
-        max_display_width = 6000   # Balanced limit for server stability
-        max_display_height = 6000  # Balanced limit for server stability
-        scale_factor = 1
+        print(f"🎯 PIXEL-PERFECT GENERATION: {total_width}×{total_height} pixels")
+        print(f"📦 Panel config: {panels_width}×{panels_height} panels of {panel_pixel_width}×{panel_pixel_height}px each")
         
-        if total_width > max_display_width or total_height > max_display_height:
-            scale_x = total_width / max_display_width
-            scale_y = total_height / max_display_height
-            scale_factor = max(scale_x, scale_y)
+        # NEW APPROACH: NO SCALING - Generate at full resolution for pixel-perfect quality
+        # This ensures crisp fonts and perfect panel definition even for massive surfaces
+        display_width = total_width
+        display_height = total_height
+        panel_display_width = panel_pixel_width
+        panel_display_height = panel_pixel_height
+        scale_factor = 1.0
         
-        display_width = int(total_width / scale_factor)
-        display_height = int(total_height / scale_factor)
-        panel_display_width = int(panel_pixel_width / scale_factor)
-        panel_display_height = int(panel_pixel_height / scale_factor)
+        print(f"🔥 Full resolution generation - NO SCALING for maximum quality")
         
-        print(f"Image scaling: {total_width}×{total_height} → {display_width}×{display_height} (scale: {scale_factor:.2f})")
+        # Memory and performance check
+        total_pixels = display_width * display_height
+        estimated_memory_mb = (total_pixels * 3) / (1024 * 1024)  # RGB = 3 bytes per pixel
+        print(f"📊 Image specs: {total_pixels:,} pixels, ~{estimated_memory_mb:.1f}MB memory")
+        
+        # Warn about very large images but proceed anyway
+        if total_pixels > 100_000_000:  # 100M pixels
+            print(f"⚠️  Large image detected - this may take several minutes to generate")
         
         # Create high-fidelity RGB image for LED pixel mapping
         # Use RGB mode for consistent color representation across platforms
@@ -296,7 +299,7 @@ def generate_pixel_map():
                 'flutter_compatibility': 'Ready for direct use without conversion',
                 'rendering_engine': 'PIL/Pillow direct rasterization'
             },
-            'note': f'Native PNG generated on Render.com - Original: {total_width}×{total_height}px (scaled 1:{scale_factor:.1f} for display) - Flutter ready without conversion'
+            'note': f'PIXEL-PERFECT PNG generated on Render.com - Full Resolution: {total_width}×{total_height}px (NO SCALING) - Maximum quality for professional use'
         })
         
     except Exception as e:
