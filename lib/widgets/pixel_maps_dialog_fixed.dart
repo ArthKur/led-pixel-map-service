@@ -54,6 +54,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
   String _selectedOption = 'Selected Surfaces';
   final Map<int, bool> _selectedSurfaces =
       {}; // Track which surfaces are selected
+  bool _showPanelNumbers = true; // Control panel numbering display
 
   @override
   void initState() {
@@ -219,6 +220,34 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                 )
                 .toList(),
           ),
+          const SizedBox(height: 15),
+          // Panel numbering checkbox
+          CheckboxListTile(
+            title: Text(
+              'Show Panel Numbers',
+              style: TextStyle(
+                color: widget.isDarkMode ? Colors.white : textColorPrimary,
+                fontSize: 14,
+              ),
+            ),
+            subtitle: Text(
+              'Display panel coordinates on the pixel map',
+              style: TextStyle(
+                color: widget.isDarkMode
+                    ? Colors.grey[300]
+                    : textColorSecondary,
+                fontSize: 12,
+              ),
+            ),
+            value: _showPanelNumbers,
+            onChanged: (value) {
+              setState(() {
+                _showPanelNumbers = value ?? true;
+              });
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+            dense: true,
+          ),
         ],
       ),
     );
@@ -372,7 +401,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
       index,
       imageWidth: pixelsWidth,
       imageHeight: pixelsHeight,
-      showPanelNumbers: true, // Always show panel numbers
+      showPanelNumbers: _showPanelNumbers, // Use checkbox value
       showGrid: true, // Always show grid
     );
   }

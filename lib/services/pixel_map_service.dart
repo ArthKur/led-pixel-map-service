@@ -33,7 +33,7 @@ class PixelMapService {
     if (totalPixels > _canvasLimitThreshold) {
       // Always true since threshold = 0
       debugPrint(
-        'Generating on Render.com cloud service (${totalPixels} pixels)...',
+        'Generating on Render.com cloud service ($totalPixels pixels)...',
       );
 
       try {
@@ -101,7 +101,7 @@ class PixelMapService {
     final totalPixels = imageWidth * imageHeight;
 
     debugPrint(
-      'Smart Ultra Pixel Perfect: ${imageWidth}×${imageHeight} = $totalPixels pixels',
+      'Smart Ultra Pixel Perfect: $imageWidth×$imageHeight = $totalPixels pixels',
     );
 
     // For large images, use cloud service

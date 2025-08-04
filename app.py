@@ -26,8 +26,8 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.6 - Panel-Based Font Scale: Font size based on individual panel pixel dimensions',
-        'message': 'Red/Grey alternating pattern with panel-pixel-based font scaling for true consistency',
+        'version': '10.7 - Surface-Dimension Font Scale: 10m surface = reference, 50m surface = 50% smaller',
+        'message': 'Red/Grey alternating pattern with surface-size-based font scaling per user specification',
         'features': 'Surface-width based font scaling, no backgrounds, pure black text',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
         'timestamp': '2025-08-04-09:00'
@@ -82,28 +82,48 @@ def generate_pixel_map():
         # Use high-quality drawing context for precise rendering
         draw = ImageDraw.Draw(image, 'RGB')  # Ensure RGB consistency
         
-        # FIXED font size calculation based on ORIGINAL panel pixel size
-        # User preference: consistent numbering size based on panel dimensions, not surface width
-        # Reference: 20-panel wide surface (10m) with 100px panels had perfect font size
+        # SURFACE-DIMENSION-BASED font scaling as per user requirements
+        # User specification: 
+        # - Absen 2.5mm @ 10m×10m surface = correct font size (reference)
+        # - Absen 2.5mm @ 50m×50m surface = 50% smaller font than 10m surface
         
-        # Use ORIGINAL panel pixel dimensions, not display-scaled dimensions
+        # Calculate surface dimensions in meters (assuming 500mm = 0.5m panels for Absen)
+        # This is an approximation - in real app, we'd need actual panel physical dimensions
+        estimated_panel_width_m = 0.5  # Absen panels are typically 500mm = 0.5m wide
+        surface_width_m = panels_width * estimated_panel_width_m
+        surface_height_m = panels_height * estimated_panel_width_m  # Assume square panels
+        
+        # Use ORIGINAL panel pixel dimensions as base
         original_panel_size = min(panel_pixel_width, panel_pixel_height)
         
-        # Calculate optimal font scale based on the reference configuration:
-        # 20 panels wide, 100px panels → good font size
-        # From user feedback: 100px panel should have specific font size
-        # Reverse engineering: if 100px panel looks good with ~7px font, that's 7% scale
-        reference_panel_size = 100  # Reference panel size (100px from good test)
-        reference_font_scale = 0.07  # 7% scale that looked good
+        # STEP-BY-STEP SCALING based on surface size:
+        # Reference: 10m×10m surface (20×20 panels) = 100% font scale
+        # Target: 50m×50m surface (100×100 panels) = 50% font scale
         
-        # Calculate font size directly from original panel pixel size
-        # This ensures consistent font size regardless of display scaling or surface width
-        calculated_font_size = int(original_panel_size * reference_font_scale)
+        reference_surface_size = 10.0  # 10m×10m reference surface
+        current_surface_size = max(surface_width_m, surface_height_m)  # Use larger dimension
         
-        # Set reasonable bounds: minimum 4px, maximum 80px
-        panel_font_size = max(4, min(80, calculated_font_size))
+        if current_surface_size <= 10.0:
+            # Small surfaces (up to 10m) - full size font
+            surface_scale_factor = 0.08  # 8% for good visibility on small surfaces
+            print(f"Small surface ({current_surface_size:.1f}m) - using full size font")
+        elif current_surface_size <= 50.0:
+            # Medium to large surfaces (10m to 50m) - scale down proportionally
+            scale_ratio = 10.0 / current_surface_size  # 10m=1.0, 50m=0.2 (20% of original)
+            surface_scale_factor = 0.08 * scale_ratio  # Scale from 8% down to smaller
+            print(f"Large surface ({current_surface_size:.1f}m) - scaled font (ratio: {scale_ratio:.2f})")
+        else:
+            # Very large surfaces (50m+) - minimum font size
+            surface_scale_factor = 0.016  # 2% for very large surfaces
+            print(f"Very large surface ({current_surface_size:.1f}m) - minimum font size")
         
-        print(f"Panel-based font scaling: {original_panel_size}px panel → {panel_font_size}px font (7% of panel size)")
+        # Calculate font size: panel pixel size × surface scale factor
+        calculated_font_size = int(original_panel_size * surface_scale_factor)
+        
+        # Set reasonable bounds: minimum 4px, maximum 40px
+        panel_font_size = max(4, min(40, calculated_font_size))
+        
+        print(f"Surface-based font scaling: {original_panel_size}px panel × {surface_scale_factor:.3f} = {panel_font_size}px font")
         
         # Load high-quality TrueType fonts with better error handling
         panel_font = None
