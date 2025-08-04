@@ -26,11 +26,11 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.2 - Smart Panel Number Scaling: Intelligent font sizing for any canvas size',
-        'message': 'Red/Grey alternating pattern with smart-scaled panel numbers',
-        'features': 'Adaptive font scaling, high-contrast backgrounds, optimal readability',
+        'version': '10.3 - Clean Black Text: Removed backgrounds, always black font',
+        'message': 'Red/Grey alternating pattern with clean black panel numbers',
+        'features': 'Smart font scaling, no backgrounds, pure black text',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
-        'timestamp': '2025-08-04-07:00'
+        'timestamp': '2025-08-04-08:00'
     })
 
 @app.route('/test')
@@ -200,26 +200,13 @@ def generate_pixel_map():
                     text_x = x + margin
                     text_y = y + margin
                     
-                    # Draw text with high contrast background for readability
+                    # Draw simple black text - no background
                     if panel_font:
-                        # Get text dimensions for background rectangle
-                        bbox = draw.textbbox((text_x, text_y), panel_number, font=panel_font)
-                        
-                        # Draw white background rectangle with small padding
-                        padding = max(1, int(panel_font_size * 0.1))
-                        bg_rect = [
-                            bbox[0] - padding, 
-                            bbox[1] - padding,
-                            bbox[2] + padding, 
-                            bbox[3] + padding
-                        ]
-                        draw.rectangle(bg_rect, fill='white', outline='black', width=1)
-                        
-                        # Draw black text on white background
+                        # Draw black text directly on panels
                         draw.text((text_x, text_y), panel_number, fill='black', font=panel_font)
                     else:
-                        # Fallback without font
-                        draw.text((text_x, text_y), panel_number, fill='white')
+                        # Fallback without font - still black text
+                        draw.text((text_x, text_y), panel_number, fill='black')
         
         # Generate NATIVE PNG with maximum quality and precision
         # No SVG conversion - direct PNG generation for Flutter

@@ -40,7 +40,7 @@ def generate_massive_pixel_map():
         "config": {
             "surfaceIndex": 0,  # Screen 1
             "showGrid": True,
-            "showPanelNumbers": False  # Remove panel numbering
+            "showPanelNumbers": False  # Set to True for clean black panel numbers
         }
     }
     
