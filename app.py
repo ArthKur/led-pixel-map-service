@@ -912,7 +912,8 @@ def generate_pixel_map():
                 'showCross': show_cross,
                 'showCircle': show_circle,
                 'showLogo': show_logo,
-                'ledName': led_name
+                'ledName': led_name,
+                'surfaceName': surface_name
             }
             
             image = generate_pixel_map_optimized(
