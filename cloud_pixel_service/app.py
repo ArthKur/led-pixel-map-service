@@ -610,10 +610,8 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
     
     # 1. Add CENTER NAME (30% of canvas dimensions, amber color)
     if show_name and surface_name:
-        # Calculate text size as 30% of the FULL PIXEL MAP WIDTH (not smaller dimension)
-        # This makes the text properly sized for the overall canvas
-        text_size = int(width * 0.3)  # 30% of full width for proper visibility
-        text_size = max(80, min(text_size, 800))  # Larger bounds for pixel maps
+        # Calculate font size so that TEXT WIDTH is 30% of canvas width
+        target_text_width = int(width * 0.3)  # Target: 30% of canvas width
         
         # Amber color as requested
         amber_color = (255, 191, 0)  # Pure amber
@@ -621,22 +619,51 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
         try:
             # Try to load a default system font
             from PIL import ImageFont
+            
+            # Start with an estimated font size and adjust to fit target width
+            font_size = max(20, int(target_text_width / len(surface_name) * 1.2))  # Rough estimate
+            font_size = min(font_size, 200)  # Cap at reasonable size
+            
             try:
                 # Try to use a bold system font
-                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", text_size)
+                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
             except:
                 try:
                     # Fallback to Helvetica
-                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", text_size)
+                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
                 except:
                     try:
                         # Another fallback
-                        font = ImageFont.truetype("arial.ttf", text_size)
+                        font = ImageFont.truetype("arial.ttf", font_size)
                     except:
                         # Use default PIL font if no system fonts available
                         font = ImageFont.load_default()
             
-            # Get text bounding box for accurate centering
+            # Adjust font size to achieve target text width
+            for attempt in range(10):  # Max 10 iterations
+                bbox = draw.textbbox((0, 0), surface_name, font=font)
+                actual_width = bbox[2] - bbox[0]
+                
+                if abs(actual_width - target_text_width) < target_text_width * 0.1:  # Within 10%
+                    break
+                    
+                # Adjust font size
+                if actual_width > target_text_width:
+                    font_size = int(font_size * 0.9)
+                else:
+                    font_size = int(font_size * 1.1)
+                
+                font_size = max(12, min(font_size, 300))  # Keep within bounds
+                
+                try:
+                    font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
+                except:
+                    try:
+                        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                    except:
+                        font = ImageFont.load_default()
+            
+            # Get final text dimensions
             bbox = draw.textbbox((0, 0), surface_name, font=font)
             text_width = bbox[2] - bbox[0]
             text_height = bbox[3] - bbox[1]
@@ -648,15 +675,16 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
             # Draw the surface name with normal font
             draw.text((text_x, text_y), surface_name, font=font, fill=amber_color)
             
-            logger.info(f"✅ Added center name: '{surface_name}' at {text_x},{text_y} size={text_size} (30% of canvas) using font")
+            logger.info(f"✅ Added center name: '{surface_name}' at {text_x},{text_y} font_size={font_size} text_width={text_width} (target: {target_text_width})")
             
         except Exception as e:
             logger.error(f"❌ Font loading failed: {e}, falling back to vector text")
             # Fallback to vector text if font loading fails
-            text_width_estimate = len(surface_name) * text_size * 0.6
+            font_size = max(20, int(target_text_width / len(surface_name) * 1.2))
+            text_width_estimate = len(surface_name) * font_size * 0.6
             text_x = center_x - int(text_width_estimate // 2)
-            text_y = center_y - text_size // 2
-            draw_vector_text(draw, surface_name, text_x, text_y, text_size, amber_color)
+            text_y = center_y - font_size // 2
+            draw_vector_text(draw, surface_name, text_x, text_y, font_size, amber_color)
     
     # 2. Add CIRCLE (white line 1px thick, center to full height)
     if show_circle:
