@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -74,12 +73,21 @@ class CloudPixelMapService {
         final responseData = jsonDecode(response.body);
 
         if (responseData['success'] == true) {
-          // Get image data - SVG content that can be converted to PNG
-          final imageBase64 = responseData['image_base64'] as String;
+          // Get image data - ensure we have the right field name
+          String? imageBase64;
+          if (responseData.containsKey('image_base64')) {
+            imageBase64 = responseData['image_base64'] as String?;
+          } else if (responseData.containsKey('image')) {
+            imageBase64 = responseData['image'] as String?;
+          }
+          
+          if (imageBase64 == null) {
+            return CloudPixelMapResult.error('No image data received from cloud service');
+          }
+          
           final imageBytes = base64Decode(imageBase64);
 
-          // Note: The cloud service provides SVG which browsers can convert to PNG
-          // when downloading via the download dialog
+          // Note: The cloud service provides PNG data ready for use
 
           final dimensions = responseData['dimensions'];
           final fileSizeMB = responseData['file_size_mb'];

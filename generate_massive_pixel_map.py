@@ -21,10 +21,10 @@ def generate_massive_pixel_map():
     print(f"📦 Panel Configuration: {panels_horizontal}×{panels_vertical} panels")
     print(f"📐 Panel Size: {panel_width}×{panel_height}px each")
     print(f"🔢 Total Panels: {panels_horizontal * panels_vertical} panels")
-    print(f"🎨 Style: Clean grid - no panel numbering")
-    print(f"� Features: Smart panel number scaling (if enabled)")
-    print(f"📏 Font scaling: Optimized for massive canvas sizes")
-    print(f"�💾 Expected Size: Very Large (uncompressed PNG)")
+    print(f"🎨 Style: Clean grid with panel numbering")
+    print(f"📏 Features: Fixed 7% font scale - consistent size on all surfaces")
+    print(f"📏 Font scaling: Fixed size matching 40m wide reference")
+    print(f"💾 Expected Size: Very Large (uncompressed PNG)")
     print(f"=" * 60)
     
     # Configuration for massive pixel map
@@ -40,7 +40,7 @@ def generate_massive_pixel_map():
         "config": {
             "surfaceIndex": 0,  # Screen 1
             "showGrid": True,
-            "showPanelNumbers": False  # Set to True for clean black panel numbers
+            "showPanelNumbers": True  # Set to False to generate clean grid without panel numbers
         }
     }
     
