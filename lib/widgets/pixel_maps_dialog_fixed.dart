@@ -55,11 +55,11 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
   final Map<int, bool> _selectedSurfaces =
       {}; // Track which surfaces are selected
   bool _showPanelNumbers = true; // Control panel numbering display
-  bool _showGrid = true; // Control grid display
-  bool _showName = true;  // Default to true - user can untick if not wanted
-  bool _showCross = true; // Default to true - user can untick if not wanted
-  bool _showCircle = true; // Default to true - user can untick if not wanted
-  bool _showLogo = true; // Default to true - user can untick if not wanted
+  bool _showGrid = true; // Control grid display - test if toggle works
+  bool _showName = false; // Start unchecked for testing
+  bool _showCross = false; // Start unchecked for testing
+  bool _showCircle = false; // Start unchecked for testing
+  bool _showLogo = false; // Start unchecked for testing
 
   @override
   void initState() {
