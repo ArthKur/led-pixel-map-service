@@ -42,12 +42,18 @@ def get_memory_info():
         # Fallback without psutil
         return {'rss_mb': 0, 'vms_mb': 0, 'percent': 0}
 
-def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, led_panel_height, canvas_scale=1.0):
+def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, led_panel_height, canvas_scale=1.0, config=None):
     """Generate pixel map with memory optimization for ultra-large images - ENHANCED FOR 200M PIXELS"""
     try:
         # Log initial memory state
         initial_memory = get_memory_info()
         logger.info(f"🚀 ENHANCED: Starting generation: {width}×{height}px, Memory: {initial_memory['rss_mb']:.1f}MB")
+        
+        # Apply config defaults
+        if config is None:
+            config = {}
+        show_grid = config.get('showGrid', True)
+        show_panel_numbers = config.get('showPanelNumbers', True)
         
         # Calculate scaled dimensions
         canvas_width = int(width * canvas_scale)
@@ -69,24 +75,100 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         
         # Standard generation for smaller images (< 50M pixels)
         logger.info(f"📊 STANDARD: Using standard processing for {total_pixels:,} pixels")
-        image = Image.new(mode, (canvas_width, canvas_height), color=(0, 0, 0))
-        draw = ImageDraw.Draw(image)
         
-        # Memory check after image creation
-        after_create_memory = get_memory_info()
-        logger.info(f"After image creation: {after_create_memory['rss_mb']:.1f}MB")
-        
-        # Generate simple grid pattern for standard processing
-        generate_simple_grid(draw, canvas_width, canvas_height, led_panel_width, led_panel_height, mode)
-        
-        # Final memory check
-        final_memory = get_memory_info()
-        logger.info(f"Generation complete: {final_memory['rss_mb']:.1f}MB")
+        # For small images, use the full quality rendering with numbering
+        return generate_full_quality_pixel_map(canvas_width, canvas_height, led_panel_width, led_panel_height, 
+                                             show_grid, show_panel_numbers)
         
         return image
         
     except Exception as e:
         logger.error(f"Error in optimized generation: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise
+
+def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True):
+    """Generate full quality pixel map with numbering and grid for smaller images"""
+    try:
+        # Calculate panel dimensions
+        panels_width = int(width / led_panel_width)
+        panels_height = int(height / led_panel_height)
+        
+        # Adjust actual image size to exact panel boundaries
+        display_width = panels_width * led_panel_width
+        display_height = panels_height * led_panel_height
+        
+        logger.info(f"📐 Full quality: {panels_width}×{panels_height} panels, {display_width}×{display_height}px")
+        
+        # Create high-fidelity RGB image for LED pixel mapping
+        image = Image.new('RGB', (display_width, display_height), 'white')
+        
+        # Use high-quality drawing context for precise rendering
+        draw = ImageDraw.Draw(image, 'RGB')
+        
+        # Memory check after image creation
+        after_create_memory = get_memory_info()
+        logger.info(f"After image creation: {after_create_memory['rss_mb']:.1f}MB")
+        
+        # Fill panels first (without borders)
+        for row in range(panels_height):
+            for col in range(panels_width):
+                x = col * led_panel_width
+                y = row * led_panel_height
+                
+                # Generate color for this panel
+                panel_color = generate_color(col, row)
+                
+                # Draw panel rectangle filled with color (no outline)
+                draw.rectangle([x, y, x + led_panel_width - 1, y + led_panel_height - 1], 
+                             fill=panel_color, outline=None)
+        
+        # Draw precise 1px white grid lines for LED panel boundaries
+        if show_grid:
+            # Horizontal grid lines (separating rows)
+            for row in range(panels_height + 1):
+                y_pos = row * led_panel_height
+                if y_pos < display_height:
+                    draw.line([(0, y_pos), (display_width - 1, y_pos)], fill=(255, 255, 255), width=1)
+            
+            # Vertical grid lines (separating columns)
+            for col in range(panels_width + 1):
+                x_pos = col * led_panel_width
+                if x_pos < display_width:
+                    draw.line([(x_pos, 0), (x_pos, display_height - 1)], fill=(255, 255, 255), width=1)
+        
+        # Draw panel numbers with VECTOR-BASED numbering (pixel-perfect quality)
+        if show_panel_numbers:
+            for row in range(panels_height):
+                for col in range(panels_width):
+                    x = col * led_panel_width
+                    y = row * led_panel_height
+                    
+                    panel_number = f"{row + 1}.{col + 1}"
+                    
+                    # VECTOR NUMBERING: 10% of panel size as requested
+                    number_size = int(min(led_panel_width, led_panel_height) * 0.1)
+                    number_size = max(12, number_size)  # Minimum 12px for better visibility
+                    
+                    # Position in top-left corner with small margin
+                    margin = max(2, number_size // 8)
+                    text_x = x + margin
+                    text_y = y + margin
+                    
+                    # Draw vector-based panel numbers (no font dependencies)
+                    draw_vector_panel_number(
+                        draw, panel_number, text_x, text_y, 
+                        number_size, color=(255, 255, 255)  # WHITE numbers for better visibility
+                    )
+        
+        # Final memory check
+        final_memory = get_memory_info()
+        logger.info(f"Generated full quality with numbering: {final_memory['rss_mb']:.1f}MB")
+        
+        return image
+        
+    except Exception as e:
+        logger.error(f"Error in full quality generation: {str(e)}")
         logger.error(traceback.format_exc())
         raise
 
@@ -555,7 +637,7 @@ def generate_pixel_map():
                     
                     # VECTOR NUMBERING: 10% of panel size as requested
                     number_size = int(min(panel_display_width, panel_display_height) * 0.1)
-                    number_size = max(8, number_size)  # Minimum 8px for visibility
+                    number_size = max(12, number_size)  # Minimum 12px for better visibility
                     
                     # Position in top-left corner with small margin
                     margin = max(2, number_size // 8)
@@ -565,7 +647,7 @@ def generate_pixel_map():
                     # Draw vector-based panel numbers (no font dependencies)
                     draw_vector_panel_number(
                         draw, panel_number, text_x, text_y, 
-                        number_size, color=(0, 0, 0)  # Black numbers
+                        number_size, color=(255, 255, 255)  # WHITE numbers for better visibility
                     )
         
         # Generate NATIVE PNG with maximum quality and precision
