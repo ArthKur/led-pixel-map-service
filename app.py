@@ -378,84 +378,142 @@ def generate_pixel_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, off
         x += pixel_pitch
 
 def draw_vector_digit(draw, digit, x, y, size, color=(0, 0, 0)):
-    """Draw a single digit using SIMPLE PROFESSIONAL rendering - RELIABLE QUALITY"""
+    """Draw a single digit using HIGH QUALITY rendering with thick strokes"""
     
-    # Simple but professional digit patterns
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
+    # High quality settings - much thicker and more readable
+    thickness = max(4, size // 5)  # Much thicker strokes
+    width = int(size * 0.8)  # Wider digits
     height = size
     
+    # Helper function for thick rounded lines
+    def draw_thick_line(x1, y1, x2, y2, thickness):
+        # Draw line with rounded ends
+        draw.line([(x1, y1), (x2, y2)], fill=color, width=thickness)
+        # Add rounded ends
+        r = thickness // 2
+        draw.ellipse([x1-r, y1-r, x1+r, y1+r], fill=color)
+        draw.ellipse([x2-r, y2-r, x2+r, y2+r], fill=color)
+    
     if digit == '0':
-        # Professional oval
-        draw.ellipse([x, y, x + width, y + height], outline=color, width=thickness)
+        # Thick oval outline
+        margin = thickness // 2
+        draw.ellipse([x + margin, y + margin, x + width - margin, y + height - margin], 
+                    outline=color, width=thickness)
+        
     elif digit == '1':
-        # Clean vertical line with serifs
+        # Thick vertical line with serifs
         center_x = x + width // 2
-        draw.line([(center_x, y), (center_x, y + height)], fill=color, width=thickness)
+        # Main vertical
+        draw_thick_line(center_x, y + thickness, center_x, y + height - thickness, thickness)
         # Top serif
-        serif_len = width // 4
-        draw.line([(center_x - serif_len, y + serif_len), (center_x, y)], fill=color, width=thickness)
+        serif_len = width // 3
+        draw_thick_line(center_x - serif_len, y + serif_len + thickness, center_x, y + thickness, thickness)
         # Bottom serif
-        draw.line([(center_x - serif_len, y + height), (center_x + serif_len, y + height)], fill=color, width=thickness)
+        draw_thick_line(center_x - serif_len, y + height - thickness, 
+                       center_x + serif_len, y + height - thickness, thickness)
+        
     elif digit == '2':
-        # Top curve, diagonal, bottom line
+        # Top curve, diagonal, bottom line with thick strokes
         mid_y = y + height // 2
-        # Top line
-        draw.line([(x, y + height//4), (x + width, y)], fill=color, width=thickness)
-        draw.line([(x + width, y), (x + width, mid_y)], fill=color, width=thickness)
+        quarter_y = y + height // 4
+        
+        # Top horizontal
+        draw_thick_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
+        # Right vertical (top section)
+        draw_thick_line(x + width - thickness, y + thickness, x + width - thickness, mid_y, thickness)
         # Diagonal
-        draw.line([(x + width, mid_y), (x, y + height)], fill=color, width=thickness)
-        # Bottom line
-        draw.line([(x, y + height), (x + width, y + height)], fill=color, width=thickness)
+        draw_thick_line(x + width - thickness, mid_y, x + thickness, y + height - thickness, thickness)
+        # Bottom horizontal
+        draw_thick_line(x + thickness, y + height - thickness, 
+                       x + width - thickness, y + height - thickness, thickness)
+        
     elif digit == '3':
-        # Three horizontal lines with right verticals
+        # Three horizontal lines with right curves
         mid_y = y + height // 2
-        draw.line([(x, y), (x + width, y)], fill=color, width=thickness)
-        draw.line([(x + width, y), (x + width, mid_y)], fill=color, width=thickness)
-        draw.line([(x + width//2, mid_y), (x + width, mid_y)], fill=color, width=thickness)
-        draw.line([(x + width, mid_y), (x + width, y + height)], fill=color, width=thickness)
-        draw.line([(x, y + height), (x + width, y + height)], fill=color, width=thickness)
+        # Top horizontal
+        draw_thick_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
+        # Middle horizontal
+        draw_thick_line(x + width//2, mid_y, x + width - thickness, mid_y, thickness)
+        # Bottom horizontal
+        draw_thick_line(x + thickness, y + height - thickness, 
+                       x + width - thickness, y + height - thickness, thickness)
+        # Right verticals
+        draw_thick_line(x + width - thickness, y + thickness, x + width - thickness, mid_y, thickness)
+        draw_thick_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
+        
     elif digit == '4':
-        # Angled left, vertical right, cross
+        # Left angle, right vertical, horizontal cross
         cross_y = y + 2 * height // 3
-        draw.line([(x + width//4, y), (x, cross_y)], fill=color, width=thickness)
-        draw.line([(x + 3*width//4, y), (x + 3*width//4, y + height)], fill=color, width=thickness)
-        draw.line([(x, cross_y), (x + width, cross_y)], fill=color, width=thickness)
+        # Left vertical (top part)
+        draw_thick_line(x + width//4, y + thickness, x + width//4, cross_y, thickness)
+        # Horizontal cross
+        draw_thick_line(x + thickness, cross_y, x + width - thickness, cross_y, thickness)
+        # Right vertical (full)
+        draw_thick_line(x + 3*width//4, y + thickness, x + 3*width//4, y + height - thickness, thickness)
+        
     elif digit == '5':
-        # Top line, left vertical, middle horizontal, bottom curve
+        # Top, left vertical, middle, bottom curve
         mid_y = y + height // 2
-        draw.line([(x, y), (x + width, y)], fill=color, width=thickness)
-        draw.line([(x, y), (x, mid_y)], fill=color, width=thickness)
-        draw.line([(x, mid_y), (x + 2*width//3, mid_y)], fill=color, width=thickness)
-        draw.line([(x + 2*width//3, mid_y), (x + width, y + 3*height//4)], fill=color, width=thickness)
-        draw.line([(x + width, y + 3*height//4), (x + width//2, y + height)], fill=color, width=thickness)
-        draw.line([(x + width//2, y + height), (x, y + 3*height//4)], fill=color, width=thickness)
+        # Top horizontal
+        draw_thick_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
+        # Left vertical (top half)
+        draw_thick_line(x + thickness, y + thickness, x + thickness, mid_y, thickness)
+        # Middle horizontal
+        draw_thick_line(x + thickness, mid_y, x + width - thickness, mid_y, thickness)
+        # Right vertical (bottom half)
+        draw_thick_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
+        # Bottom horizontal
+        draw_thick_line(x + thickness, y + height - thickness, 
+                       x + width - thickness, y + height - thickness, thickness)
+        
     elif digit == '6':
-        # Top curve and bottom circle
+        # Left vertical, top curve, bottom rectangle
         mid_y = y + height // 2
-        draw.line([(x + width, y + height//6), (x + width//2, y)], fill=color, width=thickness)
-        draw.line([(x + width//2, y), (x, y + height//4)], fill=color, width=thickness)
-        draw.line([(x, y + height//4), (x, y + height)], fill=color, width=thickness)
-        draw.ellipse([x, mid_y, x + width, y + height], outline=color, width=thickness)
+        # Left vertical (full)
+        draw_thick_line(x + thickness, y + thickness, x + thickness, y + height - thickness, thickness)
+        # Top horizontal
+        draw_thick_line(x + thickness, y + thickness, x + width//2, y + thickness, thickness)
+        # Middle horizontal
+        draw_thick_line(x + thickness, mid_y, x + width - thickness, mid_y, thickness)
+        # Bottom horizontal
+        draw_thick_line(x + thickness, y + height - thickness, 
+                       x + width - thickness, y + height - thickness, thickness)
+        # Right vertical (bottom half)
+        draw_thick_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
+        
     elif digit == '7':
-        # Top line and diagonal
-        draw.line([(x, y), (x + width, y)], fill=color, width=thickness)
-        draw.line([(x + width, y), (x + width//3, y + height)], fill=color, width=thickness)
+        # Top horizontal and diagonal
+        # Top line
+        draw_thick_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
+        # Diagonal
+        draw_thick_line(x + width - thickness, y + thickness, x + width//3, y + height - thickness, thickness)
+        
     elif digit == '8':
-        # Two ovals stacked
+        # Two rectangles stacked
         mid_y = y + height // 2
-        draw.ellipse([x, y, x + width, mid_y + thickness], outline=color, width=thickness)
-        draw.ellipse([x, mid_y - thickness, x + width, y + height], outline=color, width=thickness)
+        # Top rectangle
+        draw.rectangle([x + thickness, y + thickness, x + width - thickness, mid_y], 
+                      outline=color, width=thickness)
+        # Bottom rectangle
+        draw.rectangle([x + thickness, mid_y, x + width - thickness, y + height - thickness], 
+                      outline=color, width=thickness)
+        
     elif digit == '9':
-        # Top circle with tail
+        # Top rectangle with right tail
         mid_y = y + height // 2
-        draw.ellipse([x, y, x + width, mid_y], outline=color, width=thickness)
-        draw.line([(x + width, mid_y), (x + width, y + height)], fill=color, width=thickness)
-        draw.line([(x + width, y + height), (x + width//2, y + height)], fill=color, width=thickness)
+        # Top rectangle
+        draw.rectangle([x + thickness, y + thickness, x + width - thickness, mid_y], 
+                      outline=color, width=thickness)
+        # Right vertical tail
+        draw_thick_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
+        # Bottom horizontal
+        draw_thick_line(x + width//2, y + height - thickness, 
+                       x + width - thickness, y + height - thickness, thickness)
+                       
     elif digit == '.':
-        # Dot
-        dot_size = max(3, size // 6)
-        dot_y = y + height - dot_size
+        # Large dot
+        dot_size = thickness * 2
+        dot_y = y + height - dot_size - thickness
         draw.ellipse([x, dot_y, x + dot_size, dot_y + dot_size], fill=color)
 
 def draw_vector_dot(draw, x, y, size, color=(0, 0, 0)):
