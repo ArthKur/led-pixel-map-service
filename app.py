@@ -828,8 +828,9 @@ def generate_pixel_map():
         show_logo = config.get('showLogo', False)
         surface_index = config.get('surfaceIndex', 0)
         
-        # Add debug logging for visual overlays
+        # Add debug logging for visual overlays and grid controls
         logger.info(f"🎨 Visual Overlays: Name={show_name}, Cross={show_cross}, Circle={show_circle}, Logo={show_logo}")
+        logger.info(f"🔧 Grid Controls: Grid={show_grid}, Panel Numbers={show_panel_numbers}")
         logger.info(f"📛 Surface Name: '{led_name}'")
         
         # Calculate total dimensions
