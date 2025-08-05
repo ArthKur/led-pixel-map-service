@@ -59,6 +59,9 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         show_circle = config.get('showCircle', False)
         show_logo = config.get('showLogo', False)
         
+        # Get surface name for overlays
+        surface_name = config.get('surfaceName', 'Screen One')
+        
         # Calculate scaled dimensions
         canvas_width = int(width * canvas_scale)
         canvas_height = int(height * canvas_scale)
@@ -76,7 +79,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         if total_pixels > 50_000_000:  # 50M+ pixels - use chunked processing
             logger.info(f"🔄 CHUNKED: Using enhanced chunked processing for {total_pixels:,} pixels")
             led_name = config.get('ledName', 'Absen')
-            return generate_chunked_pixel_map(canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid, show_panel_numbers, led_name, show_name, show_cross, show_circle, show_logo)
+            return generate_chunked_pixel_map(canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid, show_panel_numbers, led_name, show_name, show_cross, show_circle, show_logo, surface_name)
         
         # Standard generation for smaller images (< 50M pixels)
         logger.info(f"📊 STANDARD: Using standard processing for {total_pixels:,} pixels")
@@ -84,7 +87,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         # For small images, use the full quality rendering with numbering
         led_name = config.get('ledName', 'Absen')
         return generate_full_quality_pixel_map(canvas_width, canvas_height, led_panel_width, led_panel_height, 
-                                             show_grid, show_panel_numbers, led_name, show_name, show_cross, show_circle, show_logo)
+                                             show_grid, show_panel_numbers, led_name, show_name, show_cross, show_circle, show_logo, surface_name)
         
         return image
         
@@ -93,7 +96,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         logger.error(traceback.format_exc())
         raise
 
-def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False):
+def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False, surface_name='Screen One'):
     """Generate full quality pixel map with numbering and grid for smaller images"""
     try:
         # Calculate panel dimensions
@@ -223,7 +226,7 @@ def generate_simple_grid(draw, canvas_width, canvas_height, led_panel_width, led
         logger.error(f"Error in simple grid generation: {str(e)}")
         raise
 
-def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False):
+def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False, surface_name='Screen One'):
     """Generate ultra-large images in chunks to manage memory - ENHANCED FOR 200M PIXELS"""
     logger.info(f"🚀 ENHANCED: Generating {width}×{height}px image in optimized chunks")
     
@@ -280,7 +283,7 @@ def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_
     
     # Add visual overlays after chunked generation is complete
     draw = ImageDraw.Draw(image)
-    add_visual_overlays(draw, width, height, led_name, show_name, show_cross, show_circle, show_logo)
+    add_visual_overlays(draw, width, height, surface_name, show_name, show_cross, show_circle, show_logo)
     
     return image
 
