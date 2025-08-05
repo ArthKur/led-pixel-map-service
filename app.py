@@ -129,20 +129,24 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                 draw.rectangle([x, y, x + led_panel_width - 1, y + led_panel_height - 1], 
                              fill=panel_color, outline=None)
                 
-                # Add brighter border if grid is enabled
+                # Add brighter border if grid is enabled - WITHIN panel boundaries
                 if show_grid:
-                    # Create brighter border color (30% brighter)
-                    border_color = brighten_color(panel_color, 0.3)
+                    # Create brighter border color (40% brighter for better visibility)
+                    border_color = brighten_color(panel_color, 0.4)
                     
-                    # Draw 1-pixel brighter border around panel
-                    # Top border
-                    draw.line([(x, y), (x + led_panel_width - 1, y)], fill=border_color, width=1)
-                    # Bottom border  
-                    draw.line([(x, y + led_panel_height - 1), (x + led_panel_width - 1, y + led_panel_height - 1)], fill=border_color, width=1)
-                    # Left border
-                    draw.line([(x, y), (x, y + led_panel_height - 1)], fill=border_color, width=1)
-                    # Right border
-                    draw.line([(x + led_panel_width - 1, y), (x + led_panel_width - 1, y + led_panel_height - 1)], fill=border_color, width=1)
+                    # Draw 1-pixel border WITHIN panel boundaries (last pixels of panel)
+                    # Top border - first row of panel
+                    draw.line([(x, y), (x + led_panel_width - 1, y)], 
+                             fill=border_color, width=1)
+                    # Bottom border - last row of panel  
+                    draw.line([(x, y + led_panel_height - 1), (x + led_panel_width - 1, y + led_panel_height - 1)], 
+                             fill=border_color, width=1)
+                    # Left border - first column of panel
+                    draw.line([(x, y), (x, y + led_panel_height - 1)], 
+                             fill=border_color, width=1)
+                    # Right border - last column of panel
+                    draw.line([(x + led_panel_width - 1, y), (x + led_panel_width - 1, y + led_panel_height - 1)], 
+                             fill=border_color, width=1)
         
         # Draw panel numbers with VECTOR-BASED numbering (pixel-perfect quality)
         if show_panel_numbers:
@@ -783,7 +787,7 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
         'status': 'healthy',
-        'version': '12.0 - ENHANCED: Up to 200M pixels with advanced chunked processing',
+        'version': '15.0 - RESTORED BORDER FIX + Visual Overlays: 1px borders within panel boundaries, no white lines',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
