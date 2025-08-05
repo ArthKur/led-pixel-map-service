@@ -979,6 +979,22 @@ def generate_pixel_map():
                 # Draw panel rectangle filled with color (no outline)
                 draw.rectangle([x, y, x + panel_display_width - 1, y + panel_display_height - 1], 
                              fill=panel_color, outline=None)
+                
+                # Add brighter borders if grid is enabled - WITHIN panel boundaries
+                if config and config.get('showGrid', False):
+                    # Create brighter border color (40% brighter for better visibility)
+                    border_color = brighten_color(panel_color, 0.4)
+                    
+                    # Draw borders ONLY on the last pixels (bottom and right edges) of each panel
+                    # This way each panel "owns" its border and adjacent panels don't conflict
+                    
+                    # Bottom border - last row of panel (pixel 199 for 200px panel)
+                    draw.line([(x, y + panel_display_height - 1), (x + panel_display_width - 1, y + panel_display_height - 1)], 
+                             fill=border_color, width=1)
+                    
+                    # Right border - last column of panel (pixel 199 for 200px panel)
+                    draw.line([(x + panel_display_width - 1, y), (x + panel_display_width - 1, y + panel_display_height - 1)], 
+                             fill=border_color, width=1)
         
         # Grid borders are now handled by generate_full_quality_pixel_map 
         # Each panel draws its own brighter border using its panel color
