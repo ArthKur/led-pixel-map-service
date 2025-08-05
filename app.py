@@ -622,9 +622,10 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
     
     # 1. Add CENTER NAME (30% of canvas dimensions, amber color)
     if show_name and surface_name:
-        # Calculate text size as 30% of the smaller canvas dimension
-        text_size = int(min(width, height) * 0.3)
-        text_size = max(50, min(text_size, 500))  # Reasonable bounds for large text
+        # Calculate text size as 30% of the FULL PIXEL MAP WIDTH (not smaller dimension)
+        # This makes the text properly sized for the overall canvas
+        text_size = int(width * 0.3)  # 30% of full width for proper visibility
+        text_size = max(80, min(text_size, 800))  # Larger bounds for pixel maps
         
         # Amber color as requested
         amber_color = (255, 191, 0)  # Pure amber
