@@ -148,9 +148,9 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                     
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # VECTOR NUMBERING: 20% of panel size for better visibility
-                    number_size = int(min(led_panel_width, led_panel_height) * 0.15)
-                    number_size = max(12, number_size)  # Minimum 12px for better quality
+                    # ULTRA-FINE VECTOR NUMBERING: 10% of panel size for smoother text quality
+                    number_size = int(min(led_panel_width, led_panel_height) * 0.10)  # Reduced from 0.15 for finer pixels
+                    number_size = max(8, number_size)  # Minimum 8px for ultra-fine quality
                     
                     # Position with 3% margin from edges (bit lower and to the right)
                     margin_percent = 0.03
@@ -309,9 +309,9 @@ def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, 
                     if show_panel_numbers and panel_left >= offset_x and panel_top >= offset_y:
                         panel_number = f"{panel_global_y + 1}.{panel_global_x + 1}"
                         
-                        # VECTOR NUMBERING: 20% of panel size for better visibility
-                        number_size = int(min(led_panel_width, led_panel_height) * 0.15)
-                        number_size = max(12, number_size)  # Minimum 12px for better quality
+                        # ULTRA-FINE VECTOR NUMBERING: 10% of panel size for smoother text quality
+                        number_size = int(min(led_panel_width, led_panel_height) * 0.10)  # Reduced from 0.15 for finer pixels
+                        number_size = max(8, number_size)  # Minimum 8px for ultra-fine quality
                         
                         # Position with 3% margin from edges (bit lower and to the right)
                         margin_percent = 0.03
@@ -378,136 +378,158 @@ def generate_pixel_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, off
         x += pixel_pitch
 
 def draw_vector_digit(draw, digit, x, y, size, color=(0, 0, 0)):
-    """Draw a single digit using HIGH QUALITY rendering with thick strokes"""
+    """Draw a single digit using ULTRA HIGH QUALITY rendering with fine-pixel precision"""
     
-    # High quality settings - much thicker and more readable
-    thickness = max(4, size // 5)  # Much thicker strokes
-    width = int(size * 0.8)  # Wider digits
+    # ULTRA QUALITY settings - reduced pixel size for smoother text
+    # Reduce the effective "pixel" size while maintaining readability
+    base_thickness = max(2, size // 8)  # Thinner base strokes for finer detail
+    thickness = base_thickness + 1  # Add slight thickness for visibility
+    width = int(size * 0.75)  # Slightly narrower for better proportions
     height = size
     
-    # Helper function for thick rounded lines
-    def draw_thick_line(x1, y1, x2, y2, thickness):
-        # Draw line with rounded ends
+    # Helper function for ultra-smooth thick lines with anti-aliasing effect
+    def draw_ultra_smooth_line(x1, y1, x2, y2, thickness):
+        # Draw core line
         draw.line([(x1, y1), (x2, y2)], fill=color, width=thickness)
-        # Add rounded ends
-        r = thickness // 2
-        draw.ellipse([x1-r, y1-r, x1+r, y1+r], fill=color)
-        draw.ellipse([x2-r, y2-r, x2+r, y2+r], fill=color)
+        
+        # Add sub-pixel smoothing with smaller rounded ends
+        r = max(1, thickness // 3)  # Much smaller radius for finer detail
+        
+        # Multiple small circles for smoother appearance
+        for i in range(3):
+            offset = i * 0.3
+            radius = r - i * 0.2
+            if radius > 0:
+                draw.ellipse([x1-radius+offset, y1-radius+offset, 
+                            x1+radius+offset, y1+radius+offset], fill=color)
+                draw.ellipse([x2-radius+offset, y2-radius+offset, 
+                            x2+radius+offset, y2+radius+offset], fill=color)
     
     if digit == '0':
-        # Thick oval outline
+        # Ultra-smooth oval outline with fine detail
         margin = thickness // 2
+        # Draw main oval
         draw.ellipse([x + margin, y + margin, x + width - margin, y + height - margin], 
                     outline=color, width=thickness)
+        # Add inner smoothing
+        inner_margin = margin + 1
+        if width > 20 and height > 20:  # Only for larger sizes
+            draw.ellipse([x + inner_margin, y + inner_margin, x + width - inner_margin, y + height - inner_margin], 
+                        outline=color, width=1)
         
     elif digit == '1':
-        # Thick vertical line with serifs
+        # Ultra-smooth vertical line with refined serifs
         center_x = x + width // 2
-        # Main vertical
-        draw_thick_line(center_x, y + thickness, center_x, y + height - thickness, thickness)
-        # Top serif
-        serif_len = width // 3
-        draw_thick_line(center_x - serif_len, y + serif_len + thickness, center_x, y + thickness, thickness)
-        # Bottom serif
-        draw_thick_line(center_x - serif_len, y + height - thickness, 
+        # Main vertical with ultra-smooth rendering
+        draw_ultra_smooth_line(center_x, y + thickness, center_x, y + height - thickness, thickness)
+        # Refined top serif
+        serif_len = width // 4  # Smaller serif for finer look
+        draw_ultra_smooth_line(center_x - serif_len, y + serif_len + thickness, center_x, y + thickness, thickness)
+        # Refined bottom serif
+        draw_ultra_smooth_line(center_x - serif_len, y + height - thickness, 
                        center_x + serif_len, y + height - thickness, thickness)
         
     elif digit == '2':
-        # Top curve, diagonal, bottom line with thick strokes
+        # Ultra-smooth curves and lines
         mid_y = y + height // 2
-        quarter_y = y + height // 4
         
         # Top horizontal
-        draw_thick_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
+        draw_ultra_smooth_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
         # Right vertical (top section)
-        draw_thick_line(x + width - thickness, y + thickness, x + width - thickness, mid_y, thickness)
-        # Diagonal
-        draw_thick_line(x + width - thickness, mid_y, x + thickness, y + height - thickness, thickness)
+        draw_ultra_smooth_line(x + width - thickness, y + thickness, x + width - thickness, mid_y, thickness)
+        # Diagonal with anti-aliasing
+        draw_ultra_smooth_line(x + width - thickness, mid_y, x + thickness, y + height - thickness, thickness)
         # Bottom horizontal
-        draw_thick_line(x + thickness, y + height - thickness, 
+        draw_ultra_smooth_line(x + thickness, y + height - thickness, 
                        x + width - thickness, y + height - thickness, thickness)
         
     elif digit == '3':
-        # Three horizontal lines with right curves
+        # Ultra-smooth three horizontal lines with right curves
         mid_y = y + height // 2
         # Top horizontal
-        draw_thick_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
+        draw_ultra_smooth_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
         # Middle horizontal
-        draw_thick_line(x + width//2, mid_y, x + width - thickness, mid_y, thickness)
+        draw_ultra_smooth_line(x + width//2, mid_y, x + width - thickness, mid_y, thickness)
         # Bottom horizontal
-        draw_thick_line(x + thickness, y + height - thickness, 
+        draw_ultra_smooth_line(x + thickness, y + height - thickness, 
                        x + width - thickness, y + height - thickness, thickness)
         # Right verticals
-        draw_thick_line(x + width - thickness, y + thickness, x + width - thickness, mid_y, thickness)
-        draw_thick_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
+        draw_ultra_smooth_line(x + width - thickness, y + thickness, x + width - thickness, mid_y, thickness)
+        draw_ultra_smooth_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
         
     elif digit == '4':
-        # Left angle, right vertical, horizontal cross
+        # Ultra-smooth left angle, right vertical, horizontal cross
         cross_y = y + 2 * height // 3
         # Left vertical (top part)
-        draw_thick_line(x + width//4, y + thickness, x + width//4, cross_y, thickness)
+        draw_ultra_smooth_line(x + width//4, y + thickness, x + width//4, cross_y, thickness)
         # Horizontal cross
-        draw_thick_line(x + thickness, cross_y, x + width - thickness, cross_y, thickness)
+        draw_ultra_smooth_line(x + thickness, cross_y, x + width - thickness, cross_y, thickness)
         # Right vertical (full)
-        draw_thick_line(x + 3*width//4, y + thickness, x + 3*width//4, y + height - thickness, thickness)
+        draw_ultra_smooth_line(x + 3*width//4, y + thickness, x + 3*width//4, y + height - thickness, thickness)
         
     elif digit == '5':
-        # Top, left vertical, middle, bottom curve
+        # Ultra-smooth top, left vertical, middle, bottom curve
         mid_y = y + height // 2
         # Top horizontal
-        draw_thick_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
+        draw_ultra_smooth_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
         # Left vertical (top half)
-        draw_thick_line(x + thickness, y + thickness, x + thickness, mid_y, thickness)
+        draw_ultra_smooth_line(x + thickness, y + thickness, x + thickness, mid_y, thickness)
         # Middle horizontal
-        draw_thick_line(x + thickness, mid_y, x + width - thickness, mid_y, thickness)
+        draw_ultra_smooth_line(x + thickness, mid_y, x + width - thickness, mid_y, thickness)
         # Right vertical (bottom half)
-        draw_thick_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
+        draw_ultra_smooth_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
         # Bottom horizontal
-        draw_thick_line(x + thickness, y + height - thickness, 
+        draw_ultra_smooth_line(x + thickness, y + height - thickness, 
                        x + width - thickness, y + height - thickness, thickness)
         
     elif digit == '6':
-        # Left vertical, top curve, bottom rectangle
+        # Ultra-smooth left vertical, top curve, bottom rectangle
         mid_y = y + height // 2
         # Left vertical (full)
-        draw_thick_line(x + thickness, y + thickness, x + thickness, y + height - thickness, thickness)
+        draw_ultra_smooth_line(x + thickness, y + thickness, x + thickness, y + height - thickness, thickness)
         # Top horizontal
-        draw_thick_line(x + thickness, y + thickness, x + width//2, y + thickness, thickness)
+        draw_ultra_smooth_line(x + thickness, y + thickness, x + width//2, y + thickness, thickness)
         # Middle horizontal
-        draw_thick_line(x + thickness, mid_y, x + width - thickness, mid_y, thickness)
+        draw_ultra_smooth_line(x + thickness, mid_y, x + width - thickness, mid_y, thickness)
         # Bottom horizontal
-        draw_thick_line(x + thickness, y + height - thickness, 
+        draw_ultra_smooth_line(x + thickness, y + height - thickness, 
                        x + width - thickness, y + height - thickness, thickness)
         # Right vertical (bottom half)
-        draw_thick_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
+        draw_ultra_smooth_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
         
     elif digit == '7':
-        # Top horizontal and diagonal
+        # Ultra-smooth top horizontal and diagonal
         # Top line
-        draw_thick_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
+        draw_ultra_smooth_line(x + thickness, y + thickness, x + width - thickness, y + thickness, thickness)
         # Diagonal
-        draw_thick_line(x + width - thickness, y + thickness, x + width//3, y + height - thickness, thickness)
+        draw_ultra_smooth_line(x + width - thickness, y + thickness, x + width//3, y + height - thickness, thickness)
         
     elif digit == '8':
-        # Two rectangles stacked
+        # Ultra-smooth two rectangles stacked with fine detail
         mid_y = y + height // 2
-        # Top rectangle
+        # Top rectangle with enhanced smoothing
         draw.rectangle([x + thickness, y + thickness, x + width - thickness, mid_y], 
                       outline=color, width=thickness)
-        # Bottom rectangle
+        # Bottom rectangle with enhanced smoothing
         draw.rectangle([x + thickness, mid_y, x + width - thickness, y + height - thickness], 
                       outline=color, width=thickness)
+        # Add fine detail lines for ultra-smooth appearance
+        if thickness > 2:
+            draw.rectangle([x + thickness + 1, y + thickness + 1, x + width - thickness - 1, mid_y - 1], 
+                          outline=color, width=1)
+            draw.rectangle([x + thickness + 1, mid_y + 1, x + width - thickness - 1, y + height - thickness - 1], 
+                          outline=color, width=1)
         
     elif digit == '9':
-        # Top rectangle with right tail
+        # Ultra-smooth top rectangle with right tail
         mid_y = y + height // 2
         # Top rectangle
         draw.rectangle([x + thickness, y + thickness, x + width - thickness, mid_y], 
                       outline=color, width=thickness)
         # Right vertical tail
-        draw_thick_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
+        draw_ultra_smooth_line(x + width - thickness, mid_y, x + width - thickness, y + height - thickness, thickness)
         # Bottom horizontal
-        draw_thick_line(x + width//2, y + height - thickness, 
+        draw_ultra_smooth_line(x + width//2, y + height - thickness, 
                        x + width - thickness, y + height - thickness, thickness)
                        
     elif digit == '.':
@@ -793,9 +815,9 @@ def generate_pixel_map():
                     
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # VECTOR NUMBERING: 20% of panel size for better visibility
-                    number_size = int(min(panel_display_width, panel_display_height) * 0.15)
-                    number_size = max(12, number_size)  # Minimum 12px for better quality
+                    # ULTRA-FINE VECTOR NUMBERING: 10% of panel size for smoother text quality
+                    number_size = int(min(panel_display_width, panel_display_height) * 0.10)  # Reduced from 0.15 for finer pixels
+                    number_size = max(8, number_size)  # Minimum 8px for ultra-fine quality
                     
                     # Position with 3% margin from edges (bit lower and to the right)
                     margin_percent = 0.03
