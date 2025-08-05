@@ -96,7 +96,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         logger.error(traceback.format_exc())
         raise
 
-def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False):
+def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False, surface_name='Screen One'):
     """Generate full quality pixel map with numbering and grid for smaller images"""
     try:
         # Calculate panel dimensions
@@ -214,7 +214,7 @@ def generate_simple_grid(draw, canvas_width, canvas_height, led_panel_width, led
         logger.error(f"Error in simple grid generation: {str(e)}")
         raise
 
-def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False):
+def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False, surface_name='Screen One'):
     """Generate ultra-large images in chunks to manage memory - ENHANCED FOR 200M PIXELS"""
     logger.info(f"🚀 ENHANCED: Generating {width}×{height}px image in optimized chunks")
     
@@ -843,7 +843,7 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
         'status': 'healthy',
-        'version': '16.1 - SURFACE NAME DEBUG: Force redeploy to fix missing amber text rendering',
+        'version': '16.2 - SURFACE NAME FIXED: Added missing surface_name parameter to function signatures',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
