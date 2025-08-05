@@ -4,10 +4,169 @@ from PIL import Image, ImageDraw, ImageFont
 import base64
 import io
 import os
-import struct
+import gc
+import logging
+import psutil
+import traceback
+
+# Configure PIL for ultra-large images
+Image.MAX_IMAGE_PIXELS = None  # Remove PIL limits
+os.environ['PIL_LOAD_TRUNCATED_IMAGES'] = '1'
+
+# Configure logging for better debugging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:*", "https://*.github.io", "https://led-calculator-*.onrender.com"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
+
+def get_memory_info():
+    """Get current memory usage for debugging (fallback if psutil not available)"""
+    try:
+        import psutil
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        return {
+            'rss_mb': memory_info.rss / 1024 / 1024,
+            'vms_mb': memory_info.vms / 1024 / 1024,
+            'percent': process.memory_percent()
+        }
+    except ImportError:
+        # Fallback without psutil
+        return {'rss_mb': 0, 'vms_mb': 0, 'percent': 0}
+
+def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, led_panel_height, canvas_scale=1.0):
+    """Generate pixel map with memory optimization for ultra-large images"""
+    try:
+        # Log initial memory state
+        initial_memory = get_memory_info()
+        logger.info(f"Starting generation: {width}×{height}px, Memory: {initial_memory['rss_mb']:.1f}MB")
+        
+        # Calculate scaled dimensions
+        canvas_width = int(width * canvas_scale)
+        canvas_height = int(height * canvas_scale)
+        total_pixels = canvas_width * canvas_height
+        
+        logger.info(f"Canvas: {canvas_width}×{canvas_height}px ({total_pixels:,} pixels)")
+        
+        # Force garbage collection before starting
+        gc.collect()
+        
+        # Create image with memory-efficient mode
+        if total_pixels > 50_000_000:  # 50M+ pixels
+            mode = 'L'  # Grayscale for ultra-large images
+            logger.info("Using grayscale mode for ultra-large image")
+        else:
+            mode = 'RGB'
+            
+        # Create image in chunks if very large
+        if total_pixels > 100_000_000:  # 100M+ pixels
+            return generate_chunked_pixel_map(canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, mode)
+        
+        # Standard generation for smaller images
+        image = Image.new(mode, (canvas_width, canvas_height), color='black' if mode == 'L' else (0, 0, 0))
+        draw = ImageDraw.Draw(image)
+        
+        # Memory check after image creation
+        after_create_memory = get_memory_info()
+        logger.info(f"After image creation: {after_create_memory['rss_mb']:.1f}MB")
+        
+        # Generate pixel grid with optimized drawing
+        generate_pixel_grid_optimized(draw, canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, canvas_scale, mode)
+        
+        # Final memory check
+        final_memory = get_memory_info()
+        logger.info(f"Generation complete: {final_memory['rss_mb']:.1f}MB")
+        
+        return image
+        
+    except Exception as e:
+        logger.error(f"Error in optimized generation: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise
+
+def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode):
+    """Generate ultra-large images in chunks to manage memory"""
+    logger.info(f"Generating {width}×{height}px image in chunks")
+    
+    # Create base image
+    image = Image.new(mode, (width, height), color='black' if mode == 'L' else (0, 0, 0))
+    
+    # Process in chunks of 10M pixels
+    chunk_size = 3162  # sqrt(10M) ≈ 3162
+    
+    for y in range(0, height, chunk_size):
+        for x in range(0, width, chunk_size):
+            chunk_width = min(chunk_size, width - x)
+            chunk_height = min(chunk_size, height - y)
+            
+            # Create chunk
+            chunk = Image.new(mode, (chunk_width, chunk_height), color='black' if mode == 'L' else (0, 0, 0))
+            chunk_draw = ImageDraw.Draw(chunk)
+            
+            # Generate grid for this chunk
+            generate_pixel_grid_for_chunk(chunk_draw, chunk_width, chunk_height, x, y, pixel_pitch, led_panel_width, led_panel_height, mode)
+            
+            # Paste chunk into main image
+            image.paste(chunk, (x, y))
+            
+            # Clean up chunk
+            del chunk, chunk_draw
+            gc.collect()
+            
+            logger.info(f"Processed chunk at {x},{y}")
+    
+    return image
+
+def generate_pixel_grid_optimized(draw, canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, canvas_scale, mode):
+    """Optimized pixel grid generation"""
+    scaled_pitch = pixel_pitch * canvas_scale
+    color = 128 if mode == 'L' else (128, 128, 128)  # Gray
+    
+    # Calculate grid dimensions
+    h_lines = int(canvas_height / scaled_pitch) + 1
+    v_lines = int(canvas_width / scaled_pitch) + 1
+    
+    # Draw horizontal lines (batch processing)
+    for i in range(h_lines):
+        y = i * scaled_pitch
+        if y < canvas_height:
+            draw.line([(0, y), (canvas_width, y)], fill=color, width=1)
+    
+    # Draw vertical lines (batch processing)
+    for i in range(v_lines):
+        x = i * scaled_pitch
+        if x < canvas_width:
+            draw.line([(x, 0), (x, canvas_height)], fill=color, width=1)
+    
+    # Force garbage collection
+    gc.collect()
+
+def generate_pixel_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, offset_y, pixel_pitch, led_panel_width, led_panel_height, mode):
+    """Generate pixel grid for a specific chunk"""
+    color = 128 if mode == 'L' else (128, 128, 128)
+    
+    # Calculate starting positions based on offset
+    start_x = offset_x % pixel_pitch
+    start_y = offset_y % pixel_pitch
+    
+    # Draw lines within chunk bounds
+    y = start_y
+    while y < chunk_height:
+        draw.line([(0, y), (chunk_width, y)], fill=color, width=1)
+        y += pixel_pitch
+    
+    x = start_x
+    while x < chunk_width:
+        draw.line([(x, 0), (x, chunk_height)], fill=color, width=1)
+        x += pixel_pitch
 
 def generate_color(panel_x, panel_y):
     """Generate alternating full red and medium grey colors for each panel"""
@@ -58,7 +217,50 @@ def generate_pixel_map():
         # Calculate total dimensions
         total_width = panels_width * panel_pixel_width
         total_height = panels_height * panel_pixel_height
+        total_pixels = total_width * total_height
         
+        logger.info(f"Request: {total_width}×{total_height}px ({total_pixels:,} pixels)")
+        
+        # For ultra-large images (>5M pixels), use optimized generation
+        if total_pixels > 5_000_000:
+            logger.info("Using optimized generation for ultra-large image")
+            
+            # Use chunked generation for memory efficiency
+            canvas_scale = 1.0
+            if total_width > 10000 or total_height > 10000:
+                # Scale down for extremely large dimensions
+                max_dimension = 8000
+                scale_factor = max(total_width / max_dimension, total_height / max_dimension)
+                canvas_scale = 1.0 / scale_factor
+                logger.info(f"Scaling down by factor {scale_factor:.2f}")
+            
+            # Generate using optimized function
+            image = generate_pixel_map_optimized(
+                total_width, total_height, 
+                1,  # pixel_pitch set to 1 for now
+                panel_pixel_width, panel_pixel_height, 
+                canvas_scale
+            )
+            
+            # Convert to base64 and return immediately for ultra-large images
+            buffer = io.BytesIO()
+            if image.mode == 'L':
+                # Convert grayscale back to RGB for compatibility
+                image = image.convert('RGB')
+            image.save(buffer, format='PNG', optimize=True)
+            buffer.seek(0)
+            image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            
+            return jsonify({
+                'success': True,
+                'image': image_base64,
+                'width': image.width,
+                'height': image.height,
+                'optimized': True,
+                'total_pixels': total_pixels
+            })
+        
+        # Standard generation for smaller images (≤10M pixels)
         # For very large images, create a manageable size for display
         # Scale down if too large to keep file size reasonable
         max_display_width = 4000

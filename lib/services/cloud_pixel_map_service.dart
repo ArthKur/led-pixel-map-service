@@ -103,9 +103,20 @@ class CloudPixelMapService {
         }
       } else {
         debugPrint('Cloud Service: Error response body: ${response.body}');
-        return CloudPixelMapResult.error(
-          'Cloud service error (${response.statusCode}): ${response.reasonPhrase}',
-        );
+        
+        // Handle specific error codes
+        String errorMessage;
+        if (response.statusCode == 502) {
+          errorMessage = 'Cloud service temporarily unavailable (502 Bad Gateway). The service may be overloaded or restarting. Please try again in a few minutes.';
+        } else if (response.statusCode == 503) {
+          errorMessage = 'Cloud service temporarily unavailable (503 Service Unavailable). Please try again in a few minutes.';
+        } else if (response.statusCode == 504) {
+          errorMessage = 'Cloud service timeout (504 Gateway Timeout). The image may be too large for the current service capacity.';
+        } else {
+          errorMessage = 'Cloud service error (${response.statusCode}): ${response.reasonPhrase ?? 'Unknown error'}';
+        }
+        
+        return CloudPixelMapResult.error(errorMessage);
       }
     } catch (e) {
       debugPrint('Cloud Service: Exception: $e');
