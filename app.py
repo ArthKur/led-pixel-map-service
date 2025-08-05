@@ -137,18 +137,20 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                     # DEBUG: Log border drawing
                     logger.info(f"🔧 DRAWING BORDER: Panel {panel_color} -> Border {border_color}")
                     
-                    # Draw 1-pixel border WITHIN panel boundaries (last pixels of panel)
-                    # Top border - first row of panel
-                    draw.line([(x, y), (x + led_panel_width - 1, y)], 
-                             fill=border_color, width=1)
-                    # Bottom border - last row of panel  
+                    # Draw 1-pixel border using the LAST pixels of each panel (pixel 199 for 200px panel)
+                    # This creates a border WITHIN each panel using its own brightened color
+                    
+                    # Top border - last row of panel
                     draw.line([(x, y + led_panel_height - 1), (x + led_panel_width - 1, y + led_panel_height - 1)], 
                              fill=border_color, width=1)
-                    # Left border - first column of panel
-                    draw.line([(x, y), (x, y + led_panel_height - 1)], 
+                    # Bottom border - first row of panel (so border is visible when panels are adjacent)
+                    draw.line([(x, y), (x + led_panel_width - 1, y)], 
                              fill=border_color, width=1)
-                    # Right border - last column of panel
+                    # Left border - last column of panel
                     draw.line([(x + led_panel_width - 1, y), (x + led_panel_width - 1, y + led_panel_height - 1)], 
+                             fill=border_color, width=1)
+                    # Right border - first column of panel (so border is visible when panels are adjacent)
+                    draw.line([(x, y), (x, y + led_panel_height - 1)], 
                              fill=border_color, width=1)
         
         # Draw panel numbers with VECTOR-BASED numbering (pixel-perfect quality)
