@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import '../models/surface_model.dart';
-import '../services/pixel_map_service.dart';
-import 'dart:io' show Platform, File;
+import '../services/cloud_pixel_map_service.dart';
+import 'dart:io' show Platform, File, Directory;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Border colors as per style guide
@@ -349,7 +349,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
   }
 
   Future<void> _generatePixelMaps() async {
-    List<Surface> surfacesToExport = [];
+    final List<Surface> surfacesToExport;
 
     if (_selectedOption == 'All Surfaces') {
       surfacesToExport = widget.surfaces;
@@ -372,36 +372,47 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
         final surface = surfacesToExport[i];
         final originalIndex = widget.surfaces.indexOf(surface);
 
+        print('🔄 Starting generation for surface: ${surface.name}');
         final imageBytes = await _createPixelMapImage(surface, originalIndex);
+        print('✅ Image generated: ${imageBytes.length} bytes');
+        
         final fileName = _generateFileName(surface, originalIndex);
+        print('💾 Attempting to download: $fileName');
 
         await _downloadImageBytes(imageBytes, fileName);
+        print('✅ Download completed for: $fileName');
       }
 
-      _showMessage('Pixel maps generated successfully!');
+      _showMessage('✅ All pixel maps generated and saved successfully!');
     } catch (e) {
-      _showMessage('Error generating pixel maps: $e');
+      print('❌ Error in _generatePixelMaps: $e');
+      _showMessage('❌ Error generating pixel maps: $e');
     }
   }
 
   Future<Uint8List> _createPixelMapImage(Surface surface, int index) async {
-    // Use smart generation that automatically chooses cloud vs local
+    // Use cloud service directly for better error handling
     if (surface.calculation == null) {
       throw Exception('Surface ${surface.name} has no calculation data');
     }
 
-    final pixelsWidth = surface.calculation!.pixelsWidth;
-    final pixelsHeight = surface.calculation!.pixelsHeight;
-
-    // Use smart ultra pixel perfect that handles cloud/local automatically
-    return await PixelMapService.createUltraPixelPerfectImageSmart(
+    print('🔄 Generating pixel map for ${surface.name} via cloud service...');
+    
+    // Import the cloud service
+    final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
       surface,
       index,
-      imageWidth: pixelsWidth,
-      imageHeight: pixelsHeight,
-      showPanelNumbers: _showPanelNumbers, // Use checkbox value
-      showGrid: true, // Always show grid
+      showGrid: true,
+      showPanelNumbers: _showPanelNumbers,
     );
+
+    if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
+      print('✅ Cloud generation successful: ${cloudResult.width}×${cloudResult.height}px (${cloudResult.fileSizeMB}MB)');
+      return cloudResult.imageBytes!;
+    } else {
+      print('❌ Cloud generation failed: ${cloudResult.errorMessage}');
+      throw Exception('Cloud generation failed: ${cloudResult.errorMessage}');
+    }
   }
 
   String _generateFileName(Surface surface, int index) {
@@ -441,20 +452,44 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
       } else {
         // Desktop platforms - save to file system
         try {
-          final desktopPath = '/Users/${Platform.environment['USER']}/Desktop';
-          final file = File('$desktopPath/$fileName');
-          await file.writeAsBytes(imageBytes);
-          _showMessage('File saved to Desktop: $fileName');
+          // Get the user's home directory
+          final homeDir = Platform.environment['HOME'] ?? '/Users/${Platform.environment['USER']}';
+          
+          // Try Desktop first
+          final desktopPath = '$homeDir/Desktop';
+          final desktopDir = Directory(desktopPath);
+          
+          if (await desktopDir.exists()) {
+            final file = File('$desktopPath/$fileName');
+            await file.writeAsBytes(imageBytes);
+            _showMessage('✅ File saved to Desktop: $fileName');
+            print('File saved to: ${file.path}');
+          } else {
+            // Fallback: try Downloads folder
+            final downloadsPath = '$homeDir/Downloads';
+            final downloadsDir = Directory(downloadsPath);
+            
+            if (await downloadsDir.exists()) {
+              final file = File('$downloadsPath/$fileName');
+              await file.writeAsBytes(imageBytes);
+              _showMessage('✅ File saved to Downloads: $fileName');
+              print('File saved to: ${file.path}');
+            } else {
+              // Last fallback: save to Documents
+              final documentsPath = '$homeDir/Documents';
+              final file = File('$documentsPath/$fileName');
+              await file.writeAsBytes(imageBytes);
+              _showMessage('✅ File saved to Documents: $fileName');
+              print('File saved to: ${file.path}');
+            }
+          }
         } catch (e) {
-          // Fallback: try Downloads folder
-          final downloadsPath =
-              '/Users/${Platform.environment['USER']}/Downloads';
-          final file = File('$downloadsPath/$fileName');
-          await file.writeAsBytes(imageBytes);
-          _showMessage('File saved to Downloads: $fileName');
+          print('Download error: $e');
+          _showMessage('❌ Failed to save file: $e');
         }
       }
     } catch (e) {
+      print('Download exception: $e');
       throw Exception('Failed to download image: $e');
     }
   }
