@@ -127,18 +127,24 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                 
                 # Add brighter border if grid is enabled
                 if show_grid:
-                    # Create brighter border color (30% brighter)
-                    border_color = brighten_color(panel_color, 0.3)
+                    # Create brighter border color (50% brighter for better visibility)
+                    border_color = brighten_color(panel_color, 0.5)
                     
-                    # Draw 1-pixel brighter border around panel
+                    # Draw 2-pixel brighter border around panel for better visibility at high resolution
+                    border_width = max(1, min(3, led_panel_width // 50))  # Scale border width based on panel size
+                    
                     # Top border
-                    draw.line([(x, y), (x + led_panel_width - 1, y)], fill=border_color, width=1)
+                    for i in range(border_width):
+                        draw.line([(x, y + i), (x + led_panel_width - 1, y + i)], fill=border_color, width=1)
                     # Bottom border  
-                    draw.line([(x, y + led_panel_height - 1), (x + led_panel_width - 1, y + led_panel_height - 1)], fill=border_color, width=1)
+                    for i in range(border_width):
+                        draw.line([(x, y + led_panel_height - 1 - i), (x + led_panel_width - 1, y + led_panel_height - 1 - i)], fill=border_color, width=1)
                     # Left border
-                    draw.line([(x, y), (x, y + led_panel_height - 1)], fill=border_color, width=1)
+                    for i in range(border_width):
+                        draw.line([(x + i, y), (x + i, y + led_panel_height - 1)], fill=border_color, width=1)
                     # Right border
-                    draw.line([(x + led_panel_width - 1, y), (x + led_panel_width - 1, y + led_panel_height - 1)], fill=border_color, width=1)
+                    for i in range(border_width):
+                        draw.line([(x + led_panel_width - 1 - i, y), (x + led_panel_width - 1 - i, y + led_panel_height - 1)], fill=border_color, width=1)
         
         # Draw panel numbers with VECTOR-BASED numbering (pixel-perfect quality)
         if show_panel_numbers:
@@ -302,25 +308,36 @@ def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, 
                     
                     # Add brighter border if grid is enabled
                     if show_grid:
-                        border_color = brighten_color(color, 0.3)
-                        # Draw brighter border around the panel portion in this chunk
+                        border_color = brighten_color(color, 0.5)
+                        # Calculate border width based on panel size
+                        border_width = max(1, min(3, panel_global_x * led_panel_width // 50))
+                        
+                        # Draw thicker brighter border around the panel portion in this chunk
                         # Only draw borders that are within the chunk boundaries
                         
                         # Top border (if panel top is in this chunk)
                         if panel_top >= offset_y and chunk_top == panel_top - offset_y:
-                            draw.line([(chunk_left, chunk_top), (chunk_right - 1, chunk_top)], fill=border_color, width=1)
+                            for i in range(border_width):
+                                if chunk_top + i < chunk_bottom:
+                                    draw.line([(chunk_left, chunk_top + i), (chunk_right - 1, chunk_top + i)], fill=border_color, width=1)
                         
                         # Bottom border (if panel bottom is in this chunk)
                         if panel_bottom <= offset_y + chunk_height and chunk_bottom == panel_bottom - offset_y:
-                            draw.line([(chunk_left, chunk_bottom - 1), (chunk_right - 1, chunk_bottom - 1)], fill=border_color, width=1)
+                            for i in range(border_width):
+                                if chunk_bottom - 1 - i >= chunk_top:
+                                    draw.line([(chunk_left, chunk_bottom - 1 - i), (chunk_right - 1, chunk_bottom - 1 - i)], fill=border_color, width=1)
                         
                         # Left border (if panel left is in this chunk)
                         if panel_left >= offset_x and chunk_left == panel_left - offset_x:
-                            draw.line([(chunk_left, chunk_top), (chunk_left, chunk_bottom - 1)], fill=border_color, width=1)
+                            for i in range(border_width):
+                                if chunk_left + i < chunk_right:
+                                    draw.line([(chunk_left + i, chunk_top), (chunk_left + i, chunk_bottom - 1)], fill=border_color, width=1)
                         
                         # Right border (if panel right is in this chunk)
                         if panel_right <= offset_x + chunk_width and chunk_right == panel_right - offset_x:
-                            draw.line([(chunk_right - 1, chunk_top), (chunk_right - 1, chunk_bottom - 1)], fill=border_color, width=1)
+                            for i in range(border_width):
+                                if chunk_right - 1 - i >= chunk_left:
+                                    draw.line([(chunk_right - 1 - i, chunk_top), (chunk_right - 1 - i, chunk_bottom - 1)], fill=border_color, width=1)
                     
                     # Add panel numbering if enabled and the panel starts in this chunk
                     if show_panel_numbers and panel_left >= offset_x and panel_top >= offset_y:
