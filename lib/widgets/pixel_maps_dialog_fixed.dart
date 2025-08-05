@@ -3,8 +3,6 @@ import 'dart:typed_data';
 import '../models/surface_model.dart';
 import '../services/pixel_map_service.dart';
 import 'dart:io' show Platform, File;
-// Conditional import for web support
-import 'dart:html' as html show AnchorElement, Url, Blob, document;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Border colors as per style guide
@@ -438,20 +436,8 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
   ) async {
     try {
       if (kIsWeb) {
-        // Web platform - use browser download API
-        final blob = html.Blob([imageBytes]);
-        final url = html.Url.createObjectUrlFromBlob(blob);
-
-        final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', fileName)
-          ..style.display = 'none';
-
-        html.document.body?.children.add(anchor);
-        anchor.click();
-        html.document.body?.children.remove(anchor);
-        html.Url.revokeObjectUrl(url);
-
-        _showMessage('File downloaded: $fileName');
+        // Web platform - show message that download is not available
+        _showMessage('Download not available on this platform. Try web version or save from cloud service.');
       } else {
         // Desktop platforms - save to file system
         try {
