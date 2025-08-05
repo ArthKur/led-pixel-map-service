@@ -112,7 +112,7 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
         after_create_memory = get_memory_info()
         logger.info(f"After image creation: {after_create_memory['rss_mb']:.1f}MB")
         
-        # Fill panels first (without borders)
+        # Fill panels with colors and optionally add brighter grid borders
         for row in range(panels_height):
             for col in range(panels_width):
                 x = col * led_panel_width
@@ -124,20 +124,21 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                 # Draw panel rectangle filled with color (no outline)
                 draw.rectangle([x, y, x + led_panel_width - 1, y + led_panel_height - 1], 
                              fill=panel_color, outline=None)
-        
-        # Draw precise 1px white grid lines for LED panel boundaries
-        if show_grid:
-            # Horizontal grid lines (separating rows)
-            for row in range(panels_height + 1):
-                y_pos = row * led_panel_height
-                if y_pos < display_height:
-                    draw.line([(0, y_pos), (display_width - 1, y_pos)], fill=(255, 255, 255), width=1)
-            
-            # Vertical grid lines (separating columns)
-            for col in range(panels_width + 1):
-                x_pos = col * led_panel_width
-                if x_pos < display_width:
-                    draw.line([(x_pos, 0), (x_pos, display_height - 1)], fill=(255, 255, 255), width=1)
+                
+                # Add brighter border if grid is enabled
+                if show_grid:
+                    # Create brighter border color (30% brighter)
+                    border_color = brighten_color(panel_color, 0.3)
+                    
+                    # Draw 1-pixel brighter border around panel
+                    # Top border
+                    draw.line([(x, y), (x + led_panel_width - 1, y)], fill=border_color, width=1)
+                    # Bottom border  
+                    draw.line([(x, y + led_panel_height - 1), (x + led_panel_width - 1, y + led_panel_height - 1)], fill=border_color, width=1)
+                    # Left border
+                    draw.line([(x, y), (x, y + led_panel_height - 1)], fill=border_color, width=1)
+                    # Right border
+                    draw.line([(x + led_panel_width - 1, y), (x + led_panel_width - 1, y + led_panel_height - 1)], fill=border_color, width=1)
         
         # Draw panel numbers with VECTOR-BASED numbering (pixel-perfect quality)
         if show_panel_numbers:
@@ -148,9 +149,9 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                     
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # ULTRA-FINE VECTOR NUMBERING: 10% of panel size for smoother text quality
-                    number_size = int(min(led_panel_width, led_panel_height) * 0.10)  # Reduced from 0.15 for finer pixels
-                    number_size = max(8, number_size)  # Minimum 8px for ultra-fine quality
+                    # ENHANCED VECTOR NUMBERING: 15% of panel size for optimal visibility
+                    number_size = int(min(led_panel_width, led_panel_height) * 0.15)  # Increased to 15%
+                    number_size = max(12, number_size)  # Minimum 12px for enhanced visibility
                     
                     # Position with 3% margin from edges (bit lower and to the right)
                     margin_percent = 0.03
@@ -294,24 +295,40 @@ def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, 
                     color = generate_color(panel_global_x, panel_global_y, led_name)
                     
                     # Draw panel portion in chunk coordinates
+                    draw.rectangle([
+                        chunk_left, chunk_top, 
+                        chunk_right - 1, chunk_bottom - 1
+                    ], fill=color, outline=None)
+                    
+                    # Add brighter border if grid is enabled
                     if show_grid:
-                        draw.rectangle([
-                            chunk_left, chunk_top, 
-                            chunk_right - 1, chunk_bottom - 1
-                        ], fill=color, outline=(255, 255, 255), width=1)
-                    else:
-                        draw.rectangle([
-                            chunk_left, chunk_top, 
-                            chunk_right - 1, chunk_bottom - 1
-                        ], fill=color, outline=None)
+                        border_color = brighten_color(color, 0.3)
+                        # Draw brighter border around the panel portion in this chunk
+                        # Only draw borders that are within the chunk boundaries
+                        
+                        # Top border (if panel top is in this chunk)
+                        if panel_top >= offset_y and chunk_top == panel_top - offset_y:
+                            draw.line([(chunk_left, chunk_top), (chunk_right - 1, chunk_top)], fill=border_color, width=1)
+                        
+                        # Bottom border (if panel bottom is in this chunk)
+                        if panel_bottom <= offset_y + chunk_height and chunk_bottom == panel_bottom - offset_y:
+                            draw.line([(chunk_left, chunk_bottom - 1), (chunk_right - 1, chunk_bottom - 1)], fill=border_color, width=1)
+                        
+                        # Left border (if panel left is in this chunk)
+                        if panel_left >= offset_x and chunk_left == panel_left - offset_x:
+                            draw.line([(chunk_left, chunk_top), (chunk_left, chunk_bottom - 1)], fill=border_color, width=1)
+                        
+                        # Right border (if panel right is in this chunk)
+                        if panel_right <= offset_x + chunk_width and chunk_right == panel_right - offset_x:
+                            draw.line([(chunk_right - 1, chunk_top), (chunk_right - 1, chunk_bottom - 1)], fill=border_color, width=1)
                     
                     # Add panel numbering if enabled and the panel starts in this chunk
                     if show_panel_numbers and panel_left >= offset_x and panel_top >= offset_y:
                         panel_number = f"{panel_global_y + 1}.{panel_global_x + 1}"
                         
-                        # ULTRA-FINE VECTOR NUMBERING: 10% of panel size for smoother text quality
-                        number_size = int(min(led_panel_width, led_panel_height) * 0.10)  # Reduced from 0.15 for finer pixels
-                        number_size = max(8, number_size)  # Minimum 8px for ultra-fine quality
+                        # ENHANCED VECTOR NUMBERING: 15% of panel size for optimal visibility
+                        number_size = int(min(led_panel_width, led_panel_height) * 0.15)  # Increased to 15%
+                        number_size = max(12, number_size)  # Minimum 12px for enhanced visibility
                         
                         # Position with 3% margin from edges (bit lower and to the right)
                         margin_percent = 0.03
@@ -606,6 +623,15 @@ def generate_color(panel_x, panel_y, led_name='Absen'):
     color_index = (panel_x + panel_y) % len(colors)
     return colors[color_index]
 
+def brighten_color(color, factor=0.3):
+    """Brighten a color by the given factor (0.0 to 1.0)"""
+    r, g, b = color
+    # Brighten each component
+    r = min(255, int(r + (255 - r) * factor))
+    g = min(255, int(g + (255 - g) * factor))
+    b = min(255, int(b + (255 - b) * factor))
+    return (r, g, b)
+
 @app.route('/')
 def health_check():
     return jsonify({
@@ -815,9 +841,9 @@ def generate_pixel_map():
                     
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # ULTRA-FINE VECTOR NUMBERING: 10% of panel size for smoother text quality
-                    number_size = int(min(panel_display_width, panel_display_height) * 0.10)  # Reduced from 0.15 for finer pixels
-                    number_size = max(8, number_size)  # Minimum 8px for ultra-fine quality
+                    # ENHANCED VECTOR NUMBERING: 15% of panel size for optimal visibility
+                    number_size = int(min(panel_display_width, panel_display_height) * 0.15)  # Increased to 15%
+                    number_size = max(12, number_size)  # Minimum 12px for enhanced visibility
                     
                     # Position with 3% margin from edges (bit lower and to the right)
                     margin_percent = 0.03

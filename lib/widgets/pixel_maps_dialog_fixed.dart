@@ -55,6 +55,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
   final Map<int, bool> _selectedSurfaces =
       {}; // Track which surfaces are selected
   bool _showPanelNumbers = true; // Control panel numbering display
+  bool _showGrid = true; // Control grid display
 
   @override
   void initState() {
@@ -248,6 +249,33 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
             controlAffinity: ListTileControlAffinity.leading,
             dense: true,
           ),
+          // Grid toggle
+          SwitchListTile(
+            title: Text(
+              'Grid',
+              style: TextStyle(
+                color: widget.isDarkMode ? Colors.white : textColorPrimary,
+                fontSize: 14,
+              ),
+            ),
+            subtitle: Text(
+              'Show brighter borders around panels',
+              style: TextStyle(
+                color: widget.isDarkMode
+                    ? Colors.grey[300]
+                    : textColorSecondary,
+                fontSize: 12,
+              ),
+            ),
+            value: _showGrid,
+            onChanged: (value) {
+              setState(() {
+                _showGrid = value;
+              });
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+            dense: true,
+          ),
         ],
       ),
     );
@@ -404,7 +432,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
     final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
       surface,
       index,
-      showGrid: true,
+      showGrid: _showGrid,
       showPanelNumbers: _showPanelNumbers,
     );
 
