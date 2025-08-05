@@ -183,7 +183,7 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                     )
 
         # Add new visual elements based on config
-        add_visual_overlays(draw, display_width, display_height, led_name, show_name, show_cross, show_circle, show_logo)
+        add_visual_overlays(draw, display_width, display_height, surface_name, show_name, show_cross, show_circle, show_logo)
         
         # Final memory check
         final_memory = get_memory_info()
@@ -617,26 +617,54 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
     center_x = width // 2
     center_y = height // 2
     
-    # 1. Add CENTER NAME (30% of surface dimensions, amber color)
+    # 1. Add CENTER NAME (30% of canvas dimensions, amber color)
     if show_name and surface_name:
-        # Calculate text size based on 30% of surface dimensions
-        name_width = int(width * 0.3)
-        name_height = int(height * 0.3)
-        text_size = min(name_width, name_height) // len(surface_name)
-        text_size = max(20, min(text_size, 200))  # Reasonable bounds
+        # Calculate text size as 30% of the smaller canvas dimension
+        text_size = int(min(width, height) * 0.3)
+        text_size = max(50, min(text_size, 500))  # Reasonable bounds for large text
         
         # Amber color as requested
         amber_color = (255, 191, 0)  # Pure amber
         
-        # Calculate text position to center it
-        text_width_estimate = len(surface_name) * text_size * 0.6
-        text_x = center_x - int(text_width_estimate // 2)
-        text_y = center_y - text_size // 2
-        
-        # Draw the surface name using vector text
-        draw_vector_text(draw, surface_name, text_x, text_y, text_size, amber_color)
-        
-        logger.info(f"✅ Added center name: '{surface_name}' at {text_x},{text_y} size={text_size}")
+        try:
+            # Try to load a default system font
+            from PIL import ImageFont
+            try:
+                # Try to use a bold system font
+                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", text_size)
+            except:
+                try:
+                    # Fallback to Helvetica
+                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", text_size)
+                except:
+                    try:
+                        # Another fallback
+                        font = ImageFont.truetype("arial.ttf", text_size)
+                    except:
+                        # Use default PIL font if no system fonts available
+                        font = ImageFont.load_default()
+            
+            # Get text bounding box for accurate centering
+            bbox = draw.textbbox((0, 0), surface_name, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            # Center the text precisely
+            text_x = center_x - text_width // 2
+            text_y = center_y - text_height // 2
+            
+            # Draw the surface name with normal font
+            draw.text((text_x, text_y), surface_name, font=font, fill=amber_color)
+            
+            logger.info(f"✅ Added center name: '{surface_name}' at {text_x},{text_y} size={text_size} (30% of canvas) using font")
+            
+        except Exception as e:
+            logger.error(f"❌ Font loading failed: {e}, falling back to vector text")
+            # Fallback to vector text if font loading fails
+            text_width_estimate = len(surface_name) * text_size * 0.6
+            text_x = center_x - int(text_width_estimate // 2)
+            text_y = center_y - text_size // 2
+            draw_vector_text(draw, surface_name, text_x, text_y, text_size, amber_color)
     
     # 2. Add CIRCLE (white line 1px thick, center to full height)
     if show_circle:
@@ -840,8 +868,12 @@ def generate_pixel_map():
         show_logo = config.get('showLogo', False)
         surface_index = config.get('surfaceIndex', 0)
         
+        # Get surface name for center text overlay (default to "Screen One")
+        surface_name = config.get('surfaceName', 'Screen One')
+        
         # Add debug logging for visual overlays and grid controls
         logger.info(f"🎨 Visual Overlays: Name={show_name}, Cross={show_cross}, Circle={show_circle}, Logo={show_logo}")
+        logger.info(f"🎯 Surface Name: '{surface_name}'")
         logger.info(f"🔧 Grid Controls: Grid={show_grid}, Panel Numbers={show_panel_numbers}")
         logger.info(f"📛 Surface Name: '{led_name}'")
         
