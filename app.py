@@ -833,7 +833,7 @@ def generate_pixel_map():
         # Use high-quality drawing context for precise rendering
         draw = ImageDraw.Draw(image, 'RGB')  # Ensure RGB consistency
         
-        # Fill panels first (without borders)
+        # ENHANCED GRID FIX: Draw panels SMALLER to leave space for borders
         for row in range(panels_height):
             for col in range(panels_width):
                 x = col * panel_display_width
@@ -842,24 +842,53 @@ def generate_pixel_map():
                 # Generate color for this panel
                 panel_color = generate_color(col, row)
                 
-                # Draw panel rectangle filled with color (no outline)
-                draw.rectangle([x, y, x + panel_display_width - 1, y + panel_display_height - 1], 
-                             fill=panel_color, outline=None)
+                # CRITICAL FIX: Draw panel rectangle SMALLER to leave border space
+                # Leave 2-3px border space on all sides
+                border_width = max(2, min(3, panel_display_width // 30))  # Adaptive border width
+                
+                # Draw panel rectangle with border space reserved
+                draw.rectangle([
+                    x + border_width, 
+                    y + border_width, 
+                    x + panel_display_width - border_width - 1, 
+                    y + panel_display_height - border_width - 1
+                ], fill=panel_color, outline=None)
         
-        # Draw precise 1px white grid lines for LED panel boundaries
-        # Horizontal grid lines (separating rows)
-        for row in range(panels_height + 1):
-            y_pos = row * panel_display_height
-            if y_pos < display_height:
-                # Ensure exactly 1px line for grid precision
-                draw.line([(0, y_pos), (display_width - 1, y_pos)], fill=(255, 255, 255), width=1)
-        
-        # Vertical grid lines (separating columns)
-        for col in range(panels_width + 1):
-            x_pos = col * panel_display_width
-            if x_pos < display_width:
-                # Ensure exactly 1px line for grid precision
-                draw.line([(x_pos, 0), (x_pos, display_height - 1)], fill=(255, 255, 255), width=1)
+        # ENHANCED GRID: Draw thick, bright colored borders where panels don't cover
+        if config.get('showGrid', False):
+            # Get a brighter version of the base colors for borders
+            base_colors = [(255, 0, 0), (128, 128, 128)]  # Red and Gray
+            
+            # Make borders 50% brighter
+            def brighten_color(color, factor=0.5):
+                r, g, b = color
+                r = min(255, int(r + (255 - r) * factor))
+                g = min(255, int(g + (255 - g) * factor))
+                b = min(255, int(b + (255 - b) * factor))
+                return (r, g, b)
+            
+            border_color = brighten_color(base_colors[0])  # Bright red borders
+            border_width = max(2, min(3, panel_display_width // 30))
+            
+            # Draw enhanced horizontal grid lines
+            for row in range(panels_height + 1):
+                y_pos = row * panel_display_height
+                if y_pos < display_height:
+                    # Draw thick colored border line
+                    for i in range(border_width):
+                        if y_pos + i < display_height:
+                            draw.line([(0, y_pos + i), (display_width - 1, y_pos + i)], 
+                                    fill=border_color, width=1)
+            
+            # Draw enhanced vertical grid lines  
+            for col in range(panels_width + 1):
+                x_pos = col * panel_display_width
+                if x_pos < display_width:
+                    # Draw thick colored border line
+                    for i in range(border_width):
+                        if x_pos + i < display_width:
+                            draw.line([(x_pos + i, 0), (x_pos + i, display_height - 1)], 
+                                    fill=border_color, width=1)
         
         # Draw panel numbers with VECTOR-BASED numbering (pixel-perfect quality)
         for row in range(panels_height):
