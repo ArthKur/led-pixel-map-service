@@ -9,8 +9,8 @@ import '../models/surface_model.dart';
 /// Offloads pixel map generation to Python cloud service on Render.com
 /// Removes all browser Canvas API limitations for unlimited image sizes
 class CloudPixelMapService {
-  // Cloud service URL - UPDATED TO WORKING DEPLOYMENT
-  static const String _baseUrl = 'https://led-pixel-map-service-1.onrender.com';
+  // Cloud service URL - UPDATED TO CURRENT DEPLOYMENT
+  static const String _baseUrl = 'https://led-pixel-map-service.onrender.com';
 
   // Use cloud service (proven working with 40000×2400px generation)
   static String get serviceUrl => _baseUrl;
