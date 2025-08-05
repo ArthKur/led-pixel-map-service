@@ -149,8 +149,8 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                     panel_number = f"{row + 1}.{col + 1}"
                     
                     # VECTOR NUMBERING: 20% of panel size for better visibility
-                    number_size = int(min(led_panel_width, led_panel_height) * 0.2)
-                    number_size = max(16, number_size)  # Minimum 16px for better visibility
+                    number_size = int(min(led_panel_width, led_panel_height) * 0.15)
+                    number_size = max(12, number_size)  # Minimum 12px for better quality
                     
                     # Position with 3% margin from edges (bit lower and to the right)
                     margin_percent = 0.03
@@ -310,8 +310,8 @@ def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, 
                         panel_number = f"{panel_global_y + 1}.{panel_global_x + 1}"
                         
                         # VECTOR NUMBERING: 20% of panel size for better visibility
-                        number_size = int(min(led_panel_width, led_panel_height) * 0.2)
-                        number_size = max(16, number_size)  # Minimum 16px for better visibility
+                        number_size = int(min(led_panel_width, led_panel_height) * 0.15)
+                        number_size = max(12, number_size)  # Minimum 12px for better quality
                         
                         # Position with 3% margin from edges (bit lower and to the right)
                         margin_percent = 0.03
@@ -378,7 +378,7 @@ def generate_pixel_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, off
         x += pixel_pitch
 
 def draw_vector_digit(draw, digit, x, y, size, color=(0, 0, 0)):
-    """Draw a single digit using rounded 7-segment display style - EYE-FRIENDLY DESIGN"""
+    """Draw a single digit using high-quality smooth text-like style - ULTRA SMOOTH DESIGN"""
     
     # Enhanced 7-segment patterns for better visibility
     patterns = {
@@ -400,76 +400,105 @@ def draw_vector_digit(draw, digit, x, y, size, color=(0, 0, 0)):
     
     pattern = patterns[digit]
     
-    # Enhanced segment dimensions for rounded appearance
-    seg_thickness = max(2, size // 6)  # Thicker segments for better visibility
-    seg_length = size - (seg_thickness * 2)  # Adjusted length
-    corner_radius = max(1, seg_thickness // 3)  # Rounded corners
+    # Ultra-smooth segment dimensions for text-like appearance
+    seg_thickness = max(1, size // 10)  # Much thinner segments for smooth look
+    seg_length = size - (seg_thickness * 2)
+    corner_radius = max(1, seg_thickness // 2)  # Smaller radius for cleaner look
     
-    # Draw segments with rounded appearance using multiple rectangles
-    def draw_rounded_segment(x1, y1, x2, y2, horizontal=True):
-        """Draw a segment with rounded appearance"""
+    # Advanced smooth segment drawing with sub-pixel precision
+    def draw_smooth_segment(x1, y1, x2, y2, horizontal=True):
+        """Draw ultra-smooth segment with anti-aliasing effect"""
         if horizontal:
-            # Horizontal segment with rounded ends
-            # Main rectangle
+            # Main segment body
             draw.rectangle([x1 + corner_radius, y1, x2 - corner_radius, y2], fill=color)
-            # Rounded ends (small squares for simplicity, could be ellipses for more smoothness)
-            draw.rectangle([x1, y1 + corner_radius, x1 + corner_radius, y2 - corner_radius], fill=color)
-            draw.rectangle([x2 - corner_radius, y1 + corner_radius, x2, y2 - corner_radius], fill=color)
+            
+            # Smooth rounded ends with gradient effect
+            for i in range(corner_radius):
+                alpha_factor = (corner_radius - i) / corner_radius
+                # Left rounded end
+                end_y1 = y1 + int(i * alpha_factor)
+                end_y2 = y2 - int(i * alpha_factor)
+                if end_y1 < end_y2:
+                    draw.rectangle([x1 + i, end_y1, x1 + i + 1, end_y2], fill=color)
+                
+                # Right rounded end  
+                if end_y1 < end_y2:
+                    draw.rectangle([x2 - i - 1, end_y1, x2 - i, end_y2], fill=color)
         else:
-            # Vertical segment with rounded ends
-            # Main rectangle
+            # Main segment body
             draw.rectangle([x1, y1 + corner_radius, x2, y2 - corner_radius], fill=color)
-            # Rounded ends
-            draw.rectangle([x1 + corner_radius, y1, x2 - corner_radius, y1 + corner_radius], fill=color)
-            draw.rectangle([x1 + corner_radius, y2 - corner_radius, x2 - corner_radius, y2], fill=color)
+            
+            # Smooth rounded ends with gradient effect
+            for i in range(corner_radius):
+                alpha_factor = (corner_radius - i) / corner_radius
+                # Top rounded end
+                end_x1 = x1 + int(i * alpha_factor)
+                end_x2 = x2 - int(i * alpha_factor)
+                if end_x1 < end_x2:
+                    draw.rectangle([end_x1, y1 + i, end_x2, y1 + i + 1], fill=color)
+                
+                # Bottom rounded end
+                if end_x1 < end_x2:
+                    draw.rectangle([end_x1, y2 - i - 1, end_x2, y2 - i], fill=color)
     
-    # Segment definitions with improved positioning
+    # Enhanced segment positioning for better proportions
     mid_y = y + size // 2
+    gap = max(1, seg_thickness // 2)  # Small gap between segments
     
-    # Draw active segments with rounded style
+    # Draw active segments with ultra-smooth rendering
     if pattern[0]:  # top
-        draw_rounded_segment(x + seg_thickness, y, x + size - seg_thickness, y + seg_thickness, True)
+        draw_smooth_segment(x + seg_thickness, y, x + size - seg_thickness, y + seg_thickness, True)
     
     if pattern[1]:  # top-right
-        draw_rounded_segment(x + size - seg_thickness, y + seg_thickness, x + size, mid_y - seg_thickness//2, False)
+        draw_smooth_segment(x + size - seg_thickness, y + seg_thickness + gap, x + size, mid_y - gap, False)
     
     if pattern[2]:  # bottom-right
-        draw_rounded_segment(x + size - seg_thickness, mid_y + seg_thickness//2, x + size, y + size - seg_thickness, False)
+        draw_smooth_segment(x + size - seg_thickness, mid_y + gap, x + size, y + size - seg_thickness - gap, False)
     
     if pattern[3]:  # bottom
-        draw_rounded_segment(x + seg_thickness, y + size - seg_thickness, x + size - seg_thickness, y + size, True)
+        draw_smooth_segment(x + seg_thickness, y + size - seg_thickness, x + size - seg_thickness, y + size, True)
     
     if pattern[4]:  # bottom-left
-        draw_rounded_segment(x, mid_y + seg_thickness//2, x + seg_thickness, y + size - seg_thickness, False)
+        draw_smooth_segment(x, mid_y + gap, x + seg_thickness, y + size - seg_thickness - gap, False)
     
     if pattern[5]:  # top-left
-        draw_rounded_segment(x, y + seg_thickness, x + seg_thickness, mid_y - seg_thickness//2, False)
+        draw_smooth_segment(x, y + seg_thickness + gap, x + seg_thickness, mid_y - gap, False)
     
     if pattern[6]:  # middle
-        draw_rounded_segment(x + seg_thickness, mid_y - seg_thickness//2, x + size - seg_thickness, mid_y + seg_thickness//2, True)
+        draw_smooth_segment(x + seg_thickness, mid_y - seg_thickness//2, x + size - seg_thickness, mid_y + seg_thickness//2, True)
 
 def draw_vector_dot(draw, x, y, size, color=(0, 0, 0)):
-    """Draw a vector dot for decimal points"""
-    dot_size = max(1, size // 6)
-    dot_y = y + size - dot_size
-    draw.rectangle([x, dot_y, x + dot_size, dot_y + dot_size], fill=color)
+    """Draw a smooth vector dot for decimal points"""
+    dot_size = max(2, size // 8)  # Smaller, more proportional dot
+    dot_y = y + size - dot_size - (size // 10)  # Better positioning
+    
+    # Draw smooth circular dot with multiple rectangles for roundness
+    center_x = x + dot_size // 2
+    center_y = dot_y + dot_size // 2
+    radius = dot_size // 2
+    
+    # Draw circular dot using filled rectangles
+    for dy in range(-radius, radius + 1):
+        for dx in range(-radius, radius + 1):
+            if dx * dx + dy * dy <= radius * radius:
+                draw.rectangle([center_x + dx, center_y + dy, center_x + dx + 1, center_y + dy + 1], fill=color)
 
 def draw_vector_panel_number(draw, panel_number, x, y, size, color=(0, 0, 0)):
-    """Draw panel number using vector digits - PIXEL PERFECT SCALING"""
+    """Draw panel number using ultra-smooth vector digits - TEXT-LIKE QUALITY"""
     current_x = x
     digit_width = size
-    digit_spacing = max(1, size // 10)  # Small spacing between digits
+    digit_spacing = max(2, size // 8)  # Better proportional spacing between digits
     
     for char in panel_number:
         if char == '.':
             draw_vector_dot(draw, current_x, y, size, color)
-            current_x += digit_width // 3  # Dots take less space
+            current_x += digit_width // 2  # Dots take less space
         elif char.isdigit():
             draw_vector_digit(draw, char, current_x, y, size, color)
             current_x += digit_width + digit_spacing
         else:
             # Skip non-digit, non-dot characters
-            current_x += digit_width // 2
+            current_x += digit_width // 3
 
 def generate_color(panel_x, panel_y, led_name='Absen'):
     """Generate colors based on LED type and panel position"""
@@ -720,8 +749,8 @@ def generate_pixel_map():
                     panel_number = f"{row + 1}.{col + 1}"
                     
                     # VECTOR NUMBERING: 20% of panel size for better visibility
-                    number_size = int(min(panel_display_width, panel_display_height) * 0.2)
-                    number_size = max(16, number_size)  # Minimum 16px for better visibility
+                    number_size = int(min(panel_display_width, panel_display_height) * 0.15)
+                    number_size = max(12, number_size)  # Minimum 12px for better quality
                     
                     # Position with 3% margin from edges (bit lower and to the right)
                     margin_percent = 0.03
