@@ -652,9 +652,9 @@ def brighten_color(color, factor=0.3):
 @app.route('/')
 def health_check():
     return jsonify({
-        'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
+        'service': 'LED Pixel Map Cloud Renderer - ENHANCED GRID v2.0',
         'status': 'healthy',
-        'version': '12.0 - ENHANCED: Up to 200M pixels with advanced chunked processing',
+        'version': '13.0 - ENHANCED GRID: 50% brighter, 2-3px thick borders, NO WHITE LINES',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
