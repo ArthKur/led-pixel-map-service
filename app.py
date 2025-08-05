@@ -137,11 +137,19 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                     # DEBUG: Log border drawing
                     logger.info(f"🔧 DRAWING BORDER: Panel {panel_color} -> Border {border_color}")
                     
-                    # Draw borders ONLY on the last pixels (bottom and right edges) of each panel
-                    # This way each panel "owns" its border and adjacent panels don't conflict
+                    # Draw complete border frame around each panel
+                    # Using the outer edge of each panel to create complete frames
+                    
+                    # Top border - first row of panel (pixel 0)
+                    draw.line([(x, y), (x + led_panel_width - 1, y)], 
+                             fill=border_color, width=1)
                     
                     # Bottom border - last row of panel (pixel 199 for 200px panel)
                     draw.line([(x, y + led_panel_height - 1), (x + led_panel_width - 1, y + led_panel_height - 1)], 
+                             fill=border_color, width=1)
+                    
+                    # Left border - first column of panel (pixel 0)
+                    draw.line([(x, y), (x, y + led_panel_height - 1)], 
                              fill=border_color, width=1)
                     
                     # Right border - last column of panel (pixel 199 for 200px panel)
@@ -985,11 +993,19 @@ def generate_pixel_map():
                     # Create brighter border color (40% brighter for better visibility)
                     border_color = brighten_color(panel_color, 0.4)
                     
-                    # Draw borders ONLY on the last pixels (bottom and right edges) of each panel
-                    # This way each panel "owns" its border and adjacent panels don't conflict
+                    # Draw complete 1-pixel border around each panel using the last pixels
+                    # This creates a full border frame within each panel's boundaries
+                    
+                    # Top border - first row of panel (pixel 0)
+                    draw.line([(x, y), (x + panel_display_width - 1, y)], 
+                             fill=border_color, width=1)
                     
                     # Bottom border - last row of panel (pixel 199 for 200px panel)
                     draw.line([(x, y + panel_display_height - 1), (x + panel_display_width - 1, y + panel_display_height - 1)], 
+                             fill=border_color, width=1)
+                    
+                    # Left border - first column of panel (pixel 0)
+                    draw.line([(x, y), (x, y + panel_display_height - 1)], 
                              fill=border_color, width=1)
                     
                     # Right border - last column of panel (pixel 199 for 200px panel)
