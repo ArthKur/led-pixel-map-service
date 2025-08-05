@@ -71,14 +71,16 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         # Enhanced chunking strategy for 200M pixels
         if total_pixels > 50_000_000:  # 50M+ pixels - use chunked processing
             logger.info(f"🔄 CHUNKED: Using enhanced chunked processing for {total_pixels:,} pixels")
-            return generate_chunked_pixel_map(canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, mode)
+            led_name = config.get('ledName', 'Absen')
+            return generate_chunked_pixel_map(canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid, show_panel_numbers, led_name)
         
         # Standard generation for smaller images (< 50M pixels)
         logger.info(f"📊 STANDARD: Using standard processing for {total_pixels:,} pixels")
         
         # For small images, use the full quality rendering with numbering
+        led_name = config.get('ledName', 'Absen')
         return generate_full_quality_pixel_map(canvas_width, canvas_height, led_panel_width, led_panel_height, 
-                                             show_grid, show_panel_numbers)
+                                             show_grid, show_panel_numbers, led_name)
         
         return image
         
@@ -87,7 +89,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         logger.error(traceback.format_exc())
         raise
 
-def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True):
+def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True, led_name='Absen'):
     """Generate full quality pixel map with numbering and grid for smaller images"""
     try:
         # Calculate panel dimensions
@@ -116,8 +118,8 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                 x = col * led_panel_width
                 y = row * led_panel_height
                 
-                # Generate color for this panel
-                panel_color = generate_color(col, row)
+                # Generate color for this panel based on LED type
+                panel_color = generate_color(col, row, led_name)
                 
                 # Draw panel rectangle filled with color (no outline)
                 draw.rectangle([x, y, x + led_panel_width - 1, y + led_panel_height - 1], 
@@ -146,14 +148,16 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                     
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # VECTOR NUMBERING: 10% of panel size as requested
-                    number_size = int(min(led_panel_width, led_panel_height) * 0.1)
-                    number_size = max(12, number_size)  # Minimum 12px for better visibility
+                    # VECTOR NUMBERING: 20% of panel size for better visibility
+                    number_size = int(min(led_panel_width, led_panel_height) * 0.2)
+                    number_size = max(16, number_size)  # Minimum 16px for better visibility
                     
-                    # Position in top-left corner with small margin
-                    margin = max(2, number_size // 8)
-                    text_x = x + margin
-                    text_y = y + margin
+                    # Position with 3% margin from edges (bit lower and to the right)
+                    margin_percent = 0.03
+                    margin_x = max(3, int(led_panel_width * margin_percent))
+                    margin_y = max(3, int(led_panel_height * margin_percent))
+                    text_x = x + margin_x
+                    text_y = y + margin_y
                     
                     # Draw vector-based panel numbers (no font dependencies)
                     draw_vector_panel_number(
@@ -199,7 +203,7 @@ def generate_simple_grid(draw, canvas_width, canvas_height, led_panel_width, led
         logger.error(f"Error in simple grid generation: {str(e)}")
         raise
 
-def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode):
+def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen'):
     """Generate ultra-large images in chunks to manage memory - ENHANCED FOR 200M PIXELS"""
     logger.info(f"🚀 ENHANCED: Generating {width}×{height}px image in optimized chunks")
     
@@ -235,7 +239,7 @@ def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_
             # Generate optimized grid for this chunk
             generate_enhanced_grid_for_chunk(
                 chunk_draw, chunk_width, chunk_height, x, y, 
-                led_panel_width, led_panel_height, mode
+                led_panel_width, led_panel_height, mode, show_grid, show_panel_numbers, led_name
             )
             
             # Paste chunk into main image
@@ -255,7 +259,7 @@ def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_
     logger.info(f"✅ Completed chunked generation: {chunks_processed} chunks processed")
     return image
 
-def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, offset_y, led_panel_width, led_panel_height, mode):
+def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, offset_y, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen'):
     """Enhanced grid generation optimized for 200M+ pixels"""
     try:
         # Calculate panel positions within this chunk
@@ -265,9 +269,6 @@ def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, 
         # Calculate how many panels fit in this chunk
         panels_in_chunk_x = ((offset_x + chunk_width - 1) // led_panel_width) - start_panel_x + 1
         panels_in_chunk_y = ((offset_y + chunk_height - 1) // led_panel_height) - start_panel_y + 1
-        
-        # Enhanced colors for better visibility
-        colors = [(255, 0, 0), (128, 128, 128)]  # Full red, medium grey
         
         # Draw panels that intersect with this chunk
         for row in range(panels_in_chunk_y):
@@ -289,14 +290,44 @@ def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, 
                 
                 # Only draw if there's a valid intersection
                 if chunk_right > chunk_left and chunk_bottom > chunk_top:
-                    # Select color based on panel position
-                    color = colors[(panel_global_y + panel_global_x) % 2]
+                    # Generate color based on LED type and panel position
+                    color = generate_color(panel_global_x, panel_global_y, led_name)
                     
                     # Draw panel portion in chunk coordinates
-                    draw.rectangle([
-                        chunk_left, chunk_top, 
-                        chunk_right - 1, chunk_bottom - 1
-                    ], fill=color, outline=(255, 255, 255), width=1)
+                    if show_grid:
+                        draw.rectangle([
+                            chunk_left, chunk_top, 
+                            chunk_right - 1, chunk_bottom - 1
+                        ], fill=color, outline=(255, 255, 255), width=1)
+                    else:
+                        draw.rectangle([
+                            chunk_left, chunk_top, 
+                            chunk_right - 1, chunk_bottom - 1
+                        ], fill=color, outline=None)
+                    
+                    # Add panel numbering if enabled and the panel starts in this chunk
+                    if show_panel_numbers and panel_left >= offset_x and panel_top >= offset_y:
+                        panel_number = f"{panel_global_y + 1}.{panel_global_x + 1}"
+                        
+                        # VECTOR NUMBERING: 20% of panel size for better visibility
+                        number_size = int(min(led_panel_width, led_panel_height) * 0.2)
+                        number_size = max(16, number_size)  # Minimum 16px for better visibility
+                        
+                        # Position with 3% margin from edges (bit lower and to the right)
+                        margin_percent = 0.03
+                        margin_x = max(3, int(led_panel_width * margin_percent))
+                        margin_y = max(3, int(led_panel_height * margin_percent))
+                        
+                        # Calculate position in chunk coordinates
+                        text_x = chunk_left + margin_x
+                        text_y = chunk_top + margin_y
+                        
+                        # Only draw if the number fits within the chunk
+                        if text_x + number_size <= chunk_width and text_y + number_size <= chunk_height:
+                            draw_vector_panel_number(
+                                draw, panel_number, text_x, text_y, 
+                                number_size, color=(255, 255, 255)  # WHITE numbers for better visibility
+                            )
         
     except Exception as e:
         logger.error(f"Error in enhanced chunk grid generation: {str(e)}")
@@ -347,14 +378,14 @@ def generate_pixel_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, off
         x += pixel_pitch
 
 def draw_vector_digit(draw, digit, x, y, size, color=(0, 0, 0)):
-    """Draw a vector-based digit at specified position and size - PIXEL PERFECT"""
-    # Define 7-segment display patterns for each digit (0-9)
-    # Each pattern is a list of segments: [top, top-right, bottom-right, bottom, bottom-left, top-left, middle]
+    """Draw a single digit using rounded 7-segment display style - EYE-FRIENDLY DESIGN"""
+    
+    # Enhanced 7-segment patterns for better visibility
     patterns = {
         '0': [1, 1, 1, 1, 1, 1, 0],  # All except middle
         '1': [0, 1, 1, 0, 0, 0, 0],  # Right side only
-        '2': [1, 1, 0, 1, 1, 0, 1],  # S-shape
-        '3': [1, 1, 1, 1, 0, 0, 1],  # Right side + horizontal
+        '2': [1, 1, 0, 1, 1, 0, 1],  # Top + right-top + middle + left-bottom + bottom
+        '3': [1, 1, 1, 1, 0, 0, 1],  # Top + right + middle + bottom
         '4': [0, 1, 1, 0, 0, 1, 1],  # Left-top, right side, middle
         '5': [1, 0, 1, 1, 0, 1, 1],  # Left S-shape
         '6': [1, 0, 1, 1, 1, 1, 1],  # Left + bottom
@@ -369,34 +400,53 @@ def draw_vector_digit(draw, digit, x, y, size, color=(0, 0, 0)):
     
     pattern = patterns[digit]
     
-    # Calculate segment dimensions - optimized for readability
-    seg_thickness = max(1, size // 8)  # Segment thickness
-    seg_length = size - (seg_thickness * 2)  # Segment length
+    # Enhanced segment dimensions for rounded appearance
+    seg_thickness = max(2, size // 6)  # Thicker segments for better visibility
+    seg_length = size - (seg_thickness * 2)  # Adjusted length
+    corner_radius = max(1, seg_thickness // 3)  # Rounded corners
     
-    # Segment positions relative to (x, y)
-    segments = [
-        # top
-        [(x + seg_thickness, y), (x + seg_length, y + seg_thickness)],
-        # top-right  
-        [(x + seg_length, y + seg_thickness), (x + size, y + seg_length // 2)],
-        # bottom-right
-        [(x + seg_length, y + seg_length // 2 + seg_thickness), (x + size, y + seg_length)],
-        # bottom
-        [(x + seg_thickness, y + seg_length), (x + seg_length, y + size)],
-        # bottom-left
-        [(x, y + seg_length // 2 + seg_thickness), (x + seg_thickness, y + seg_length)],
-        # top-left
-        [(x, y + seg_thickness), (x + seg_thickness, y + seg_length // 2)],
-        # middle
-        [(x + seg_thickness, y + seg_length // 2), (x + seg_length, y + seg_length // 2 + seg_thickness)]
-    ]
+    # Draw segments with rounded appearance using multiple rectangles
+    def draw_rounded_segment(x1, y1, x2, y2, horizontal=True):
+        """Draw a segment with rounded appearance"""
+        if horizontal:
+            # Horizontal segment with rounded ends
+            # Main rectangle
+            draw.rectangle([x1 + corner_radius, y1, x2 - corner_radius, y2], fill=color)
+            # Rounded ends (small squares for simplicity, could be ellipses for more smoothness)
+            draw.rectangle([x1, y1 + corner_radius, x1 + corner_radius, y2 - corner_radius], fill=color)
+            draw.rectangle([x2 - corner_radius, y1 + corner_radius, x2, y2 - corner_radius], fill=color)
+        else:
+            # Vertical segment with rounded ends
+            # Main rectangle
+            draw.rectangle([x1, y1 + corner_radius, x2, y2 - corner_radius], fill=color)
+            # Rounded ends
+            draw.rectangle([x1 + corner_radius, y1, x2 - corner_radius, y1 + corner_radius], fill=color)
+            draw.rectangle([x1 + corner_radius, y2 - corner_radius, x2 - corner_radius, y2], fill=color)
     
-    # Draw active segments
-    for i, active in enumerate(pattern):
-        if active:
-            x1, y1 = segments[i][0]
-            x2, y2 = segments[i][1]
-            draw.rectangle([x1, y1, x2, y2], fill=color)
+    # Segment definitions with improved positioning
+    mid_y = y + size // 2
+    
+    # Draw active segments with rounded style
+    if pattern[0]:  # top
+        draw_rounded_segment(x + seg_thickness, y, x + size - seg_thickness, y + seg_thickness, True)
+    
+    if pattern[1]:  # top-right
+        draw_rounded_segment(x + size - seg_thickness, y + seg_thickness, x + size, mid_y - seg_thickness//2, False)
+    
+    if pattern[2]:  # bottom-right
+        draw_rounded_segment(x + size - seg_thickness, mid_y + seg_thickness//2, x + size, y + size - seg_thickness, False)
+    
+    if pattern[3]:  # bottom
+        draw_rounded_segment(x + seg_thickness, y + size - seg_thickness, x + size - seg_thickness, y + size, True)
+    
+    if pattern[4]:  # bottom-left
+        draw_rounded_segment(x, mid_y + seg_thickness//2, x + seg_thickness, y + size - seg_thickness, False)
+    
+    if pattern[5]:  # top-left
+        draw_rounded_segment(x, y + seg_thickness, x + seg_thickness, mid_y - seg_thickness//2, False)
+    
+    if pattern[6]:  # middle
+        draw_rounded_segment(x + seg_thickness, mid_y - seg_thickness//2, x + size - seg_thickness, mid_y + seg_thickness//2, True)
 
 def draw_vector_dot(draw, x, y, size, color=(0, 0, 0)):
     """Draw a vector dot for decimal points"""
@@ -421,13 +471,40 @@ def draw_vector_panel_number(draw, panel_number, x, y, size, color=(0, 0, 0)):
             # Skip non-digit, non-dot characters
             current_x += digit_width // 2
 
-def generate_color(panel_x, panel_y):
-    """Generate alternating full red and medium grey colors for each panel"""
-    # Use only two colors: full red and medium grey
-    colors = [
-        (255, 0, 0),    # Full red (pure red)
-        (128, 128, 128) # Medium grey
-    ]
+def generate_color(panel_x, panel_y, led_name='Absen'):
+    """Generate colors based on LED type and panel position"""
+    
+    # Different color schemes for different LED manufacturers
+    if 'absen' in led_name.lower():
+        # Absen: Full red and medium grey
+        colors = [
+            (255, 0, 0),    # Full red (pure red)
+            (128, 128, 128) # Medium grey
+        ]
+    elif 'novastar' in led_name.lower():
+        # Novastar: Blue and light grey
+        colors = [
+            (0, 100, 255),  # Blue
+            (180, 180, 180) # Light grey
+        ]
+    elif 'colorlight' in led_name.lower():
+        # Colorlight: Green and white
+        colors = [
+            (0, 200, 0),    # Green
+            (240, 240, 240) # Nearly white
+        ]
+    elif 'linsn' in led_name.lower():
+        # Linsn: Purple and cream
+        colors = [
+            (150, 0, 150),  # Purple
+            (250, 245, 220) # Cream
+        ]
+    else:
+        # Default/Unknown: Standard red and grey
+        colors = [
+            (255, 0, 0),    # Full red (pure red)
+            (128, 128, 128) # Medium grey
+        ]
     
     # Alternate colors in a checkerboard pattern
     color_index = (panel_x + panel_y) % len(colors)
@@ -504,11 +581,18 @@ def generate_pixel_map():
                 logger.info(f"📈 VERY LARGE: {total_pixels:,} pixels - using enhanced processing")
             
             # Generate using enhanced optimized function at EXACT requested size
+            config_dict = {
+                'showGrid': show_grid,
+                'showPanelNumbers': show_panel_numbers,
+                'ledName': led_name
+            }
+            
             image = generate_pixel_map_optimized(
                 total_width, total_height, 
                 1,  # pixel_pitch set to 1 for precise grid
                 panel_pixel_width, panel_pixel_height, 
-                canvas_scale  # Always 1.0
+                canvas_scale,  # Always 1.0
+                config_dict  # Pass the config for numbering control
             )
             
             # Verify image is exactly the requested size
@@ -635,14 +719,16 @@ def generate_pixel_map():
                     
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # VECTOR NUMBERING: 10% of panel size as requested
-                    number_size = int(min(panel_display_width, panel_display_height) * 0.1)
-                    number_size = max(12, number_size)  # Minimum 12px for better visibility
+                    # VECTOR NUMBERING: 20% of panel size for better visibility
+                    number_size = int(min(panel_display_width, panel_display_height) * 0.2)
+                    number_size = max(16, number_size)  # Minimum 16px for better visibility
                     
-                    # Position in top-left corner with small margin
-                    margin = max(2, number_size // 8)
-                    text_x = x + margin
-                    text_y = y + margin
+                    # Position with 3% margin from edges (bit lower and to the right)
+                    margin_percent = 0.03
+                    margin_x = max(3, int(panel_display_width * margin_percent))
+                    margin_y = max(3, int(panel_display_height * margin_percent))
+                    text_x = x + margin_x
+                    text_y = y + margin_y
                     
                     # Draw vector-based panel numbers (no font dependencies)
                     draw_vector_panel_number(
