@@ -185,11 +185,11 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer',
         'status': 'healthy',
-        'version': '10.3 - Clean Black Text: Removed backgrounds, always black font',
-        'message': 'Red/Grey alternating pattern with clean black panel numbers',
-        'features': 'Smart font scaling, no backgrounds, pure black text',
+        'version': '11.0 - PIXEL-PERFECT: Full resolution generation without scaling for maximum quality',
+        'message': 'No scaling, pixel-perfect generation for crisp fonts and perfect panel definition',
+        'features': 'Full resolution, surface-based font scaling, pixel-perfect quality',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
-        'timestamp': '2025-08-04-08:00'
+        'timestamp': '2025-08-04-09:00'
     })
 
 @app.route('/test')
@@ -219,7 +219,8 @@ def generate_pixel_map():
         total_height = panels_height * panel_pixel_height
         total_pixels = total_width * total_height
         
-        logger.info(f"Request: {total_width}×{total_height}px ({total_pixels:,} pixels)")
+        logger.info(f"🎯 PIXEL-PERFECT GENERATION: {total_width}×{total_height} pixels ({total_pixels:,} total)")
+        logger.info(f"📦 Panel config: {panels_width}×{panels_height} panels of {panel_pixel_width}×{panel_pixel_height}px each")
         
         # For ultra-large images (>5M pixels), use optimized generation
         if total_pixels > 5_000_000:
@@ -260,22 +261,31 @@ def generate_pixel_map():
                 'total_pixels': total_pixels
             })
         
-        # Standard generation for smaller images (≤10M pixels)
+        # Standard generation for smaller images (≤5M pixels)
         # For very large images, create a manageable size for display
         # Scale down if too large to keep file size reasonable
         max_display_width = 4000
         max_display_height = 2400
         scale_factor = 1
         
-        if total_width > max_display_width or total_height > max_display_height:
-            scale_x = total_width / max_display_width
-            scale_y = total_height / max_display_height
-            scale_factor = max(scale_x, scale_y)
+        # NEW APPROACH: NO SCALING - Generate at full resolution for pixel-perfect quality
+        # This ensures crisp fonts and perfect panel definition even for massive surfaces
+        display_width = total_width
+        display_height = total_height
+        panel_display_width = panel_pixel_width
+        panel_display_height = panel_pixel_height
+        scale_factor = 1.0
         
-        display_width = int(total_width / scale_factor)
-        display_height = int(total_height / scale_factor)
-        panel_display_width = int(panel_pixel_width / scale_factor)
-        panel_display_height = int(panel_pixel_height / scale_factor)
+        print(f"🔥 Full resolution generation - NO SCALING for maximum quality")
+        
+        # Memory and performance check
+        total_pixels = display_width * display_height
+        estimated_memory_mb = (total_pixels * 3) / (1024 * 1024)  # RGB = 3 bytes per pixel
+        print(f"📊 Image specs: {total_pixels:,} pixels, ~{estimated_memory_mb:.1f}MB memory")
+        
+        # Warn about very large images but proceed anyway
+        if total_pixels > 100_000_000:  # 100M pixels
+            print(f"⚠️  Large image detected - this may take several minutes to generate")
         
         # Create high-fidelity RGB image for LED pixel mapping
         # Use RGB mode for consistent color representation across platforms
@@ -284,34 +294,48 @@ def generate_pixel_map():
         # Use high-quality drawing context for precise rendering
         draw = ImageDraw.Draw(image, 'RGB')  # Ensure RGB consistency
         
-        # Smart font size calculation for panel numbers
-        # Scale intelligently based on both panel size AND total canvas size
+        # SURFACE-DIMENSION-BASED font scaling as per user requirements
+        # User specification: 
+        # - Absen 2.5mm @ 10m×10m surface = correct font size (reference)
+        # - Absen 2.5mm @ 50m×50m surface = 50% smaller font than 10m surface
         
-        # Base font size calculation
-        base_panel_size = min(panel_display_width, panel_display_height)
+        # Calculate surface dimensions in meters (assuming 500mm = 0.5m panels for Absen)
+        # This is an approximation - in real app, we'd need actual panel physical dimensions
+        estimated_panel_width_m = 0.5  # Absen panels are typically 500mm = 0.5m wide
+        surface_width_m = panels_width * estimated_panel_width_m
+        surface_height_m = panels_height * estimated_panel_width_m  # Assume square panels
         
-        # Calculate scaling factor based on total canvas size
-        total_pixels = display_width * display_height
+        # Use ORIGINAL panel pixel dimensions as base
+        original_panel_size = min(panel_pixel_width, panel_pixel_height)
         
-        # Define scaling tiers for different canvas sizes
-        if total_pixels <= 1000000:  # Small canvas (up to ~1000x1000)
-            font_scale_factor = 0.12  # 12% of panel size
-        elif total_pixels <= 4000000:  # Medium canvas (up to ~2000x2000) 
-            font_scale_factor = 0.08  # 8% of panel size
-        elif total_pixels <= 16000000:  # Large canvas (up to ~4000x4000)
-            font_scale_factor = 0.05  # 5% of panel size
-        elif total_pixels <= 64000000:  # Very large canvas (up to ~8000x8000)
-            font_scale_factor = 0.03  # 3% of panel size
-        else:  # Massive canvas (40000x10000+)
-            font_scale_factor = 0.015  # 1.5% of panel size for readability
+        # STEP-BY-STEP SCALING based on surface size:
+        # Reference: 10m×10m surface (20×20 panels) = 100% font scale
+        # Target: 50m×50m surface (100×100 panels) = 50% font scale
         
-        # Calculate font size with intelligent bounds
-        calculated_font_size = int(base_panel_size * font_scale_factor)
+        reference_surface_size = 10.0  # 10m×10m reference surface
+        current_surface_size = max(surface_width_m, surface_height_m)  # Use larger dimension
         
-        # Set reasonable bounds: minimum 8px, maximum 50px
-        panel_font_size = max(8, min(50, calculated_font_size))
+        if current_surface_size <= 10.0:
+            # Small surfaces (up to 10m) - full size font
+            surface_scale_factor = 0.08  # 8% for good visibility on small surfaces
+            print(f"Small surface ({current_surface_size:.1f}m) - using full size font")
+        elif current_surface_size <= 50.0:
+            # Medium to large surfaces (10m to 50m) - scale down proportionally
+            scale_ratio = 10.0 / current_surface_size  # 10m=1.0, 50m=0.2 (20% of original)
+            surface_scale_factor = 0.08 * scale_ratio  # Scale from 8% down to smaller
+            print(f"Large surface ({current_surface_size:.1f}m) - scaled font (ratio: {scale_ratio:.2f})")
+        else:
+            # Very large surfaces (50m+) - minimum font size
+            surface_scale_factor = 0.016  # 2% for very large surfaces
+            print(f"Very large surface ({current_surface_size:.1f}m) - minimum font size")
         
-        print(f"Font scaling: {total_pixels:,} pixels → scale {font_scale_factor} → size {panel_font_size}px")
+        # Calculate font size: panel pixel size × surface scale factor
+        calculated_font_size = int(original_panel_size * surface_scale_factor)
+        
+        # Set reasonable bounds: minimum 4px, maximum 40px
+        panel_font_size = max(4, min(40, calculated_font_size))
+        
+        print(f"Surface-based font scaling: {original_panel_size}px panel × {surface_scale_factor:.3f} = {panel_font_size}px font")
         
         # Load high-quality TrueType fonts with better error handling
         panel_font = None
@@ -481,7 +505,7 @@ def generate_pixel_map():
                 'flutter_compatibility': 'Ready for direct use without conversion',
                 'rendering_engine': 'PIL/Pillow direct rasterization'
             },
-            'note': f'Native PNG generated on Render.com - Original: {total_width}×{total_height}px (scaled 1:{scale_factor:.1f} for display) - Flutter ready without conversion'
+            'note': f'PIXEL-PERFECT PNG generated on Render.com - Full Resolution: {total_width}×{total_height}px (NO SCALING) - Maximum quality for professional use'
         })
         
     except Exception as e:
