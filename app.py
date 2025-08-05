@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 import base64
 import io
 import os
@@ -264,6 +264,81 @@ def generate_pixel_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, off
         draw.line([(x, 0), (x, chunk_height)], fill=color, width=1)
         x += pixel_pitch
 
+def draw_vector_digit(draw, digit, x, y, size, color=(0, 0, 0)):
+    """Draw a vector-based digit at specified position and size - PIXEL PERFECT"""
+    # Define 7-segment display patterns for each digit (0-9)
+    # Each pattern is a list of segments: [top, top-right, bottom-right, bottom, bottom-left, top-left, middle]
+    patterns = {
+        '0': [1, 1, 1, 1, 1, 1, 0],  # All except middle
+        '1': [0, 1, 1, 0, 0, 0, 0],  # Right side only
+        '2': [1, 1, 0, 1, 1, 0, 1],  # S-shape
+        '3': [1, 1, 1, 1, 0, 0, 1],  # Right side + horizontal
+        '4': [0, 1, 1, 0, 0, 1, 1],  # Left-top, right side, middle
+        '5': [1, 0, 1, 1, 0, 1, 1],  # Left S-shape
+        '6': [1, 0, 1, 1, 1, 1, 1],  # Left + bottom
+        '7': [1, 1, 1, 0, 0, 0, 0],  # Top + right
+        '8': [1, 1, 1, 1, 1, 1, 1],  # All segments
+        '9': [1, 1, 1, 1, 0, 1, 1],  # All except bottom-left
+        '.': [0, 0, 0, 0, 0, 0, 0],  # Special case for dot
+    }
+    
+    if digit not in patterns:
+        return
+    
+    pattern = patterns[digit]
+    
+    # Calculate segment dimensions - optimized for readability
+    seg_thickness = max(1, size // 8)  # Segment thickness
+    seg_length = size - (seg_thickness * 2)  # Segment length
+    
+    # Segment positions relative to (x, y)
+    segments = [
+        # top
+        [(x + seg_thickness, y), (x + seg_length, y + seg_thickness)],
+        # top-right  
+        [(x + seg_length, y + seg_thickness), (x + size, y + seg_length // 2)],
+        # bottom-right
+        [(x + seg_length, y + seg_length // 2 + seg_thickness), (x + size, y + seg_length)],
+        # bottom
+        [(x + seg_thickness, y + seg_length), (x + seg_length, y + size)],
+        # bottom-left
+        [(x, y + seg_length // 2 + seg_thickness), (x + seg_thickness, y + seg_length)],
+        # top-left
+        [(x, y + seg_thickness), (x + seg_thickness, y + seg_length // 2)],
+        # middle
+        [(x + seg_thickness, y + seg_length // 2), (x + seg_length, y + seg_length // 2 + seg_thickness)]
+    ]
+    
+    # Draw active segments
+    for i, active in enumerate(pattern):
+        if active:
+            x1, y1 = segments[i][0]
+            x2, y2 = segments[i][1]
+            draw.rectangle([x1, y1, x2, y2], fill=color)
+
+def draw_vector_dot(draw, x, y, size, color=(0, 0, 0)):
+    """Draw a vector dot for decimal points"""
+    dot_size = max(1, size // 6)
+    dot_y = y + size - dot_size
+    draw.rectangle([x, dot_y, x + dot_size, dot_y + dot_size], fill=color)
+
+def draw_vector_panel_number(draw, panel_number, x, y, size, color=(0, 0, 0)):
+    """Draw panel number using vector digits - PIXEL PERFECT SCALING"""
+    current_x = x
+    digit_width = size
+    digit_spacing = max(1, size // 10)  # Small spacing between digits
+    
+    for char in panel_number:
+        if char == '.':
+            draw_vector_dot(draw, current_x, y, size, color)
+            current_x += digit_width // 3  # Dots take less space
+        elif char.isdigit():
+            draw_vector_digit(draw, char, current_x, y, size, color)
+            current_x += digit_width + digit_spacing
+        else:
+            # Skip non-digit, non-dot characters
+            current_x += digit_width // 2
+
 def generate_color(panel_x, panel_y):
     """Generate alternating full red and medium grey colors for each panel"""
     # Use only two colors: full red and medium grey
@@ -416,8 +491,7 @@ def generate_pixel_map():
         max_display_height = 2400
         scale_factor = 1
         
-        # NEW APPROACH: NO SCALING - Generate at full resolution for pixel-perfect quality
-        # This ensures crisp fonts and perfect panel definition even for massive surfaces
+        # Calculate panel display dimensions (NO SCALING for pixel-perfect output)
         display_width = total_width
         display_height = total_height
         panel_display_width = panel_pixel_width
@@ -441,95 +515,6 @@ def generate_pixel_map():
         
         # Use high-quality drawing context for precise rendering
         draw = ImageDraw.Draw(image, 'RGB')  # Ensure RGB consistency
-        
-        # SURFACE-DIMENSION-BASED font scaling as per user requirements
-        # User specification: 
-        # - Absen 2.5mm @ 10m×10m surface = correct font size (reference)
-        # - Absen 2.5mm @ 50m×50m surface = 50% smaller font than 10m surface
-        
-        # Calculate surface dimensions in meters (assuming 500mm = 0.5m panels for Absen)
-        # This is an approximation - in real app, we'd need actual panel physical dimensions
-        estimated_panel_width_m = 0.5  # Absen panels are typically 500mm = 0.5m wide
-        surface_width_m = panels_width * estimated_panel_width_m
-        surface_height_m = panels_height * estimated_panel_width_m  # Assume square panels
-        
-        # Use ORIGINAL panel pixel dimensions as base
-        original_panel_size = min(panel_pixel_width, panel_pixel_height)
-        
-        # STEP-BY-STEP SCALING based on surface size:
-        # Reference: 10m×10m surface (20×20 panels) = 100% font scale
-        # Target: 50m×50m surface (100×100 panels) = 50% font scale
-        
-        reference_surface_size = 10.0  # 10m×10m reference surface
-        current_surface_size = max(surface_width_m, surface_height_m)  # Use larger dimension
-        
-        if current_surface_size <= 10.0:
-            # Small surfaces (up to 10m) - full size font
-            surface_scale_factor = 0.08  # 8% for good visibility on small surfaces
-            print(f"Small surface ({current_surface_size:.1f}m) - using full size font")
-        elif current_surface_size <= 50.0:
-            # Medium to large surfaces (10m to 50m) - scale down proportionally
-            scale_ratio = 10.0 / current_surface_size  # 10m=1.0, 50m=0.2 (20% of original)
-            surface_scale_factor = 0.08 * scale_ratio  # Scale from 8% down to smaller
-            print(f"Large surface ({current_surface_size:.1f}m) - scaled font (ratio: {scale_ratio:.2f})")
-        else:
-            # Very large surfaces (50m+) - minimum font size
-            surface_scale_factor = 0.016  # 2% for very large surfaces
-            print(f"Very large surface ({current_surface_size:.1f}m) - minimum font size")
-        
-        # Calculate font size: panel pixel size × surface scale factor
-        calculated_font_size = int(original_panel_size * surface_scale_factor)
-        
-        # Set reasonable bounds: minimum 4px, maximum 40px
-        panel_font_size = max(4, min(40, calculated_font_size))
-        
-        print(f"Surface-based font scaling: {original_panel_size}px panel × {surface_scale_factor:.3f} = {panel_font_size}px font")
-        
-        # Load high-quality TrueType fonts with better error handling
-        panel_font = None
-        font_paths_to_try = []
-        
-        try:
-            import platform
-            system = platform.system()
-            
-            if system == "Darwin":  # macOS
-                font_paths_to_try = [
-                    "/System/Library/Fonts/Helvetica.ttc",
-                    "/System/Library/Fonts/Arial.ttf", 
-                    "/System/Library/Fonts/Arial Unicode.ttf"
-                ]
-            elif system == "Linux":  # Linux (Render.com)
-                font_paths_to_try = [
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-                    "/usr/share/fonts/truetype/liberation/LiberationSans.ttf",
-                    "/usr/share/fonts/TTF/arial.ttf",
-                    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
-                ]
-            else:  # Windows
-                font_paths_to_try = [
-                    "C:/Windows/Fonts/arial.ttf",
-                    "C:/Windows/Fonts/calibri.ttf"
-                ]
-            
-            # Try each font path until one works
-            for font_path in font_paths_to_try:
-                try:
-                    panel_font = ImageFont.truetype(font_path, panel_font_size)
-                    print(f"Successfully loaded font: {font_path}")
-                    break
-                except:
-                    continue
-                    
-            if panel_font is None:
-                print("All font paths failed, using default")
-                panel_font = ImageFont.load_default()
-                
-        except Exception as e:
-            print(f"Font loading error: {e}")
-            panel_font = ImageFont.load_default()
         
         # Fill panels first (without borders)
         for row in range(panels_height):
@@ -559,7 +544,7 @@ def generate_pixel_map():
                 # Ensure exactly 1px line for grid precision
                 draw.line([(x_pos, 0), (x_pos, display_height - 1)], fill=(255, 255, 255), width=1)
         
-        # Draw panel numbers with simple high contrast
+        # Draw panel numbers with VECTOR-BASED numbering (pixel-perfect quality)
         for row in range(panels_height):
             for col in range(panels_width):
                 if show_panel_numbers:
@@ -568,19 +553,20 @@ def generate_pixel_map():
                     
                     panel_number = f"{row + 1}.{col + 1}"
                     
-                    # Smart margin calculation - proportional to font size, not panel size
-                    # This ensures consistent text positioning regardless of canvas scale
-                    margin = max(2, int(panel_font_size * 0.3))  # 30% of font size, minimum 2px
+                    # VECTOR NUMBERING: 10% of panel size as requested
+                    number_size = int(min(panel_display_width, panel_display_height) * 0.1)
+                    number_size = max(8, number_size)  # Minimum 8px for visibility
+                    
+                    # Position in top-left corner with small margin
+                    margin = max(2, number_size // 8)
                     text_x = x + margin
                     text_y = y + margin
                     
-                    # Draw simple black text - no background
-                    if panel_font:
-                        # Draw black text directly on panels
-                        draw.text((text_x, text_y), panel_number, fill='black', font=panel_font)
-                    else:
-                        # Fallback without font - still black text
-                        draw.text((text_x, text_y), panel_number, fill='black')
+                    # Draw vector-based panel numbers (no font dependencies)
+                    draw_vector_panel_number(
+                        draw, panel_number, text_x, text_y, 
+                        number_size, color=(0, 0, 0)  # Black numbers
+                    )
         
         # Generate NATIVE PNG with maximum quality and precision
         # No SVG conversion - direct PNG generation for Flutter
