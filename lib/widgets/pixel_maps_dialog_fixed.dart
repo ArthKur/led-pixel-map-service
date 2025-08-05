@@ -231,15 +231,6 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                 fontSize: 14,
               ),
             ),
-            subtitle: Text(
-              'Display panel coordinates on the pixel map',
-              style: TextStyle(
-                color: widget.isDarkMode
-                    ? Colors.grey[300]
-                    : textColorSecondary,
-                fontSize: 12,
-              ),
-            ),
             value: _showPanelNumbers,
             onChanged: (value) {
               setState(() {
@@ -250,7 +241,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
             dense: true,
           ),
           // Grid toggle
-          SwitchListTile(
+          CheckboxListTile(
             title: Text(
               'Grid',
               style: TextStyle(
@@ -258,19 +249,10 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                 fontSize: 14,
               ),
             ),
-            subtitle: Text(
-              'Show brighter borders around panels',
-              style: TextStyle(
-                color: widget.isDarkMode
-                    ? Colors.grey[300]
-                    : textColorSecondary,
-                fontSize: 12,
-              ),
-            ),
             value: _showGrid,
             onChanged: (value) {
               setState(() {
-                _showGrid = value;
+                _showGrid = value ?? true;
               });
             },
             controlAffinity: ListTileControlAffinity.leading,
