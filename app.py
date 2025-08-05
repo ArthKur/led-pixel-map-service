@@ -134,6 +134,9 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                     # Create brighter border color (40% brighter for better visibility)
                     border_color = brighten_color(panel_color, 0.4)
                     
+                    # DEBUG: Log border drawing
+                    logger.info(f"🔧 DRAWING BORDER: Panel {panel_color} -> Border {border_color}")
+                    
                     # Draw 1-pixel border WITHIN panel boundaries (last pixels of panel)
                     # Top border - first row of panel
                     draw.line([(x, y), (x + led_panel_width - 1, y)], 
@@ -980,20 +983,24 @@ def generate_pixel_map():
                 draw.rectangle([x, y, x + panel_display_width - 1, y + panel_display_height - 1], 
                              fill=panel_color, outline=None)
         
-        # Draw precise 1px white grid lines for LED panel boundaries
-        # Horizontal grid lines (separating rows)
-        for row in range(panels_height + 1):
-            y_pos = row * panel_display_height
-            if y_pos < display_height:
-                # Ensure exactly 1px line for grid precision
-                draw.line([(0, y_pos), (display_width - 1, y_pos)], fill=(255, 255, 255), width=1)
-        
-        # Vertical grid lines (separating columns)
-        for col in range(panels_width + 1):
-            x_pos = col * panel_display_width
-            if x_pos < display_width:
-                # Ensure exactly 1px line for grid precision
-                draw.line([(x_pos, 0), (x_pos, display_height - 1)], fill=(255, 255, 255), width=1)
+        # Draw precise 1px grid lines for LED panel boundaries ONLY if grid is enabled
+        if config and config.get('showGrid', False):
+            # Use brighter colors instead of white for better visibility
+            # Horizontal grid lines (separating rows)
+            for row in range(panels_height + 1):
+                y_pos = row * panel_display_height
+                if y_pos < display_height:
+                    # Use a subtle grid color instead of harsh white
+                    grid_color = (180, 180, 180)  # Light grey instead of white
+                    draw.line([(0, y_pos), (display_width - 1, y_pos)], fill=grid_color, width=1)
+            
+            # Vertical grid lines (separating columns)
+            for col in range(panels_width + 1):
+                x_pos = col * panel_display_width
+                if x_pos < display_width:
+                    # Use a subtle grid color instead of harsh white
+                    grid_color = (180, 180, 180)  # Light grey instead of white
+                    draw.line([(x_pos, 0), (x_pos, display_height - 1)], fill=grid_color, width=1)
         
         # Draw panel numbers with VECTOR-BASED numbering (pixel-perfect quality)
         for row in range(panels_height):
