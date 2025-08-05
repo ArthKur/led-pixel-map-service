@@ -255,26 +255,28 @@ def generate_pixel_map():
         logger.info(f"🎯 PIXEL-PERFECT GENERATION: {total_width}×{total_height} pixels ({total_pixels:,} total)")
         logger.info(f"📦 Panel config: {panels_width}×{panels_height} panels of {panel_pixel_width}×{panel_pixel_height}px each")
         
-        # For ultra-large images (>5M pixels), use optimized generation
+        # For ultra-large images (>5M pixels), use optimized generation  
         if total_pixels > 5_000_000:
-            logger.info("Using optimized generation for ultra-large image")
+            logger.info("Using optimized generation for ultra-large image - NO SCALING")
             
-            # Use chunked generation for memory efficiency
-            canvas_scale = 1.0
-            if total_width > 10000 or total_height > 10000:
-                # Scale down for extremely large dimensions
-                max_dimension = 8000
-                scale_factor = max(total_width / max_dimension, total_height / max_dimension)
-                canvas_scale = 1.0 / scale_factor
-                logger.info(f"Scaling down by factor {scale_factor:.2f}")
+            # NO SCALING - Generate at exact requested dimensions
+            # User wants pixel-perfect output matching calculator exactly
+            canvas_scale = 1.0  # Always 1.0 for pixel-perfect output
             
-            # Generate using optimized function
+            # Generate using optimized function at EXACT requested size
             image = generate_pixel_map_optimized(
                 total_width, total_height, 
-                1,  # pixel_pitch set to 1 for now
+                1,  # pixel_pitch set to 1 for precise grid
                 panel_pixel_width, panel_pixel_height, 
-                canvas_scale
+                canvas_scale  # Always 1.0
             )
+            
+            # Verify image is exactly the requested size
+            if image.width != total_width or image.height != total_height:
+                logger.error(f"Size mismatch! Requested: {total_width}×{total_height}, Got: {image.width}×{image.height}")
+                # Force resize to exact requested dimensions if needed
+                image = image.resize((total_width, total_height), Image.NEAREST)
+                logger.info(f"Resized to exact requested dimensions: {total_width}×{total_height}")
             
             # Convert to base64 with proper structure
             buffer = io.BytesIO()
@@ -292,18 +294,22 @@ def generate_pixel_map():
                 'success': True,
                 'image_base64': image_base64,  # Use consistent field name
                 'dimensions': {
-                    'width': image.width,
-                    'height': image.height
+                    'width': total_width,  # Return REQUESTED dimensions, not scaled
+                    'height': total_height
                 },
                 'file_size_mb': round(file_size_mb, 4),
                 'led_info': {
                     'name': led_name,
                     'panels': f'{panels_width}×{panels_height}',
-                    'resolution': f'{image.width}×{image.height}px'
+                    'resolution': f'{total_width}×{total_height}px'  # EXACT requested resolution
                 },
                 'optimized': True,
                 'total_pixels': total_pixels,
-                'note': f'Ultra-large optimized PNG: {image.width}×{image.height}px'
+                'note': f'PIXEL-PERFECT PNG: {total_width}×{total_height}px (no scaling)',
+                'actual_image_size': {
+                    'width': image.width,
+                    'height': image.height
+                }
             })
         
         # Standard generation for smaller images (≤5M pixels)
