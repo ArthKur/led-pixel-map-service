@@ -843,7 +843,7 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
         'status': 'healthy',
-        'version': '16.0 - SURFACE NAME FIXED: Dynamic 30% text width + correct parameter passing',
+        'version': '16.1 - SURFACE NAME DEBUG: Force redeploy to fix missing amber text rendering',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
