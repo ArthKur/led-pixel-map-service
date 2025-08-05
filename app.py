@@ -378,322 +378,93 @@ def generate_pixel_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, off
         x += pixel_pitch
 
 def draw_vector_digit(draw, digit, x, y, size, color=(0, 0, 0)):
-    """Draw a single digit using PROFESSIONAL FONT-LIKE rendering - REFERENCE QUALITY"""
+    """Draw a single digit using SIMPLE PROFESSIONAL rendering - RELIABLE QUALITY"""
     
-    # Font-like digit patterns (not 7-segment) - modern typography inspired
+    # Simple but professional digit patterns
+    thickness = max(2, size // 8)
+    width = int(size * 0.7)
+    height = size
+    
     if digit == '0':
-        draw_font_zero(draw, x, y, size, color)
+        # Professional oval
+        draw.ellipse([x, y, x + width, y + height], outline=color, width=thickness)
     elif digit == '1':
-        draw_font_one(draw, x, y, size, color)
+        # Clean vertical line with serifs
+        center_x = x + width // 2
+        draw.line([(center_x, y), (center_x, y + height)], fill=color, width=thickness)
+        # Top serif
+        serif_len = width // 4
+        draw.line([(center_x - serif_len, y + serif_len), (center_x, y)], fill=color, width=thickness)
+        # Bottom serif
+        draw.line([(center_x - serif_len, y + height), (center_x + serif_len, y + height)], fill=color, width=thickness)
     elif digit == '2':
-        draw_font_two(draw, x, y, size, color)
+        # Top curve, diagonal, bottom line
+        mid_y = y + height // 2
+        # Top line
+        draw.line([(x, y + height//4), (x + width, y)], fill=color, width=thickness)
+        draw.line([(x + width, y), (x + width, mid_y)], fill=color, width=thickness)
+        # Diagonal
+        draw.line([(x + width, mid_y), (x, y + height)], fill=color, width=thickness)
+        # Bottom line
+        draw.line([(x, y + height), (x + width, y + height)], fill=color, width=thickness)
     elif digit == '3':
-        draw_font_three(draw, x, y, size, color)
+        # Three horizontal lines with right verticals
+        mid_y = y + height // 2
+        draw.line([(x, y), (x + width, y)], fill=color, width=thickness)
+        draw.line([(x + width, y), (x + width, mid_y)], fill=color, width=thickness)
+        draw.line([(x + width//2, mid_y), (x + width, mid_y)], fill=color, width=thickness)
+        draw.line([(x + width, mid_y), (x + width, y + height)], fill=color, width=thickness)
+        draw.line([(x, y + height), (x + width, y + height)], fill=color, width=thickness)
     elif digit == '4':
-        draw_font_four(draw, x, y, size, color)
+        # Angled left, vertical right, cross
+        cross_y = y + 2 * height // 3
+        draw.line([(x + width//4, y), (x, cross_y)], fill=color, width=thickness)
+        draw.line([(x + 3*width//4, y), (x + 3*width//4, y + height)], fill=color, width=thickness)
+        draw.line([(x, cross_y), (x + width, cross_y)], fill=color, width=thickness)
     elif digit == '5':
-        draw_font_five(draw, x, y, size, color)
+        # Top line, left vertical, middle horizontal, bottom curve
+        mid_y = y + height // 2
+        draw.line([(x, y), (x + width, y)], fill=color, width=thickness)
+        draw.line([(x, y), (x, mid_y)], fill=color, width=thickness)
+        draw.line([(x, mid_y), (x + 2*width//3, mid_y)], fill=color, width=thickness)
+        draw.line([(x + 2*width//3, mid_y), (x + width, y + 3*height//4)], fill=color, width=thickness)
+        draw.line([(x + width, y + 3*height//4), (x + width//2, y + height)], fill=color, width=thickness)
+        draw.line([(x + width//2, y + height), (x, y + 3*height//4)], fill=color, width=thickness)
     elif digit == '6':
-        draw_font_six(draw, x, y, size, color)
+        # Top curve and bottom circle
+        mid_y = y + height // 2
+        draw.line([(x + width, y + height//6), (x + width//2, y)], fill=color, width=thickness)
+        draw.line([(x + width//2, y), (x, y + height//4)], fill=color, width=thickness)
+        draw.line([(x, y + height//4), (x, y + height)], fill=color, width=thickness)
+        draw.ellipse([x, mid_y, x + width, y + height], outline=color, width=thickness)
     elif digit == '7':
-        draw_font_seven(draw, x, y, size, color)
+        # Top line and diagonal
+        draw.line([(x, y), (x + width, y)], fill=color, width=thickness)
+        draw.line([(x + width, y), (x + width//3, y + height)], fill=color, width=thickness)
     elif digit == '8':
-        draw_font_eight(draw, x, y, size, color)
+        # Two ovals stacked
+        mid_y = y + height // 2
+        draw.ellipse([x, y, x + width, mid_y + thickness], outline=color, width=thickness)
+        draw.ellipse([x, mid_y - thickness, x + width, y + height], outline=color, width=thickness)
     elif digit == '9':
-        draw_font_nine(draw, x, y, size, color)
-
-def draw_smooth_line(draw, x1, y1, x2, y2, thickness, color):
-    """Draw a smooth line with rounded ends - professional quality"""
-    if thickness <= 1:
-        draw.line([(x1, y1), (x2, y2)], fill=color, width=1)
-        return
-    
-    # Calculate direction
-    import math
-    dx = x2 - x1
-    dy = y2 - y1
-    length = math.sqrt(dx*dx + dy*dy)
-    
-    if length == 0:
-        return
-    
-    # Unit vector
-    ux = dx / length
-    uy = dy / length
-    
-    # Perpendicular vector
-    px = -uy * thickness / 2
-    py = ux * thickness / 2
-    
-    # Draw main rectangle
-    points = [
-        (x1 + px, y1 + py),
-        (x1 - px, y1 - py),
-        (x2 - px, y2 - py),
-        (x2 + px, y2 + py)
-    ]
-    
-    # Convert to integer coordinates
-    points = [(int(x), int(y)) for x, y in points]
-    draw.polygon(points, fill=color)
-    
-    # Draw rounded ends
-    radius = thickness // 2
-    for cx, cy in [(x1, y1), (x2, y2)]:
-        for dy in range(-radius, radius + 1):
-            for dx in range(-radius, radius + 1):
-                if dx*dx + dy*dy <= radius*radius:
-                    draw.rectangle([cx + dx, cy + dy, cx + dx + 1, cy + dy + 1], fill=color)
-
-def draw_smooth_curve(draw, points, thickness, color):
-    """Draw a smooth curve through points - professional quality"""
-    if len(points) < 2:
-        return
-    
-    for i in range(len(points) - 1):
-        x1, y1 = points[i]
-        x2, y2 = points[i + 1]
-        draw_smooth_line(draw, x1, y1, x2, y2, thickness, color)
-
-def draw_font_zero(draw, x, y, size, color):
-    """Draw font-like '0' - professional oval shape"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
-    height = size
-    
-    center_x = x + width // 2
-    center_y = y + height // 2
-    
-    # Draw oval using multiple ellipse approximation
-    for offset in range(-thickness//2, thickness//2 + 1):
-        # Outer oval
-        rx_outer = width // 2 - abs(offset)
-        ry_outer = height // 2 - abs(offset)
-        
-        # Inner oval (hollow)
-        rx_inner = max(1, rx_outer - thickness)
-        ry_inner = max(1, ry_outer - thickness)
-        
-        # Draw oval outline
-        for angle in range(0, 360, 2):
-            import math
-            rad = math.radians(angle)
-            
-            # Outer point
-            ox = center_x + int(rx_outer * math.cos(rad))
-            oy = center_y + int(ry_outer * math.sin(rad))
-            
-            # Inner point
-            ix = center_x + int(rx_inner * math.cos(rad))
-            iy = center_y + int(ry_inner * math.sin(rad))
-            
-            # Draw line from inner to outer
-            if abs(ox - ix) > 0 or abs(oy - iy) > 0:
-                draw.line([(ix, iy), (ox, oy)], fill=color, width=1)
-
-def draw_font_one(draw, x, y, size, color):
-    """Draw font-like '1' - clean vertical line with serif"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.5)
-    height = size
-    
-    # Main vertical line (centered)
-    line_x = x + width // 2
-    draw_smooth_line(draw, line_x, y, line_x, y + height, thickness, color)
-    
-    # Top serif (angled)
-    serif_length = width // 3
-    draw_smooth_line(draw, line_x - serif_length, y + serif_length, line_x, y, thickness, color)
-    
-    # Bottom serif
-    bottom_y = y + height
-    draw_smooth_line(draw, line_x - serif_length, bottom_y, line_x + serif_length, bottom_y, thickness, color)
-
-def draw_font_two(draw, x, y, size, color):
-    """Draw font-like '2' - curved top, diagonal, straight bottom"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
-    height = size
-    
-    # Top curve
-    mid_y = y + height // 3
-    points = [
-        (x, y + height // 4),
-        (x + width // 4, y),
-        (x + 3 * width // 4, y),
-        (x + width, y + height // 4),
-        (x + width, mid_y)
-    ]
-    draw_smooth_curve(draw, points, thickness, color)
-    
-    # Diagonal line
-    draw_smooth_line(draw, x + width, mid_y, x, y + height, thickness, color)
-    
-    # Bottom line
-    draw_smooth_line(draw, x, y + height, x + width, y + height, thickness, color)
-
-def draw_font_three(draw, x, y, size, color):
-    """Draw font-like '3' - two curved sections"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
-    height = size
-    
-    # Top curve
-    mid_y = y + height // 2
-    top_points = [
-        (x, y + height // 6),
-        (x + width // 4, y),
-        (x + 3 * width // 4, y),
-        (x + width, y + height // 6),
-        (x + width, y + height // 3),
-        (x + 3 * width // 4, mid_y)
-    ]
-    draw_smooth_curve(draw, top_points, thickness, color)
-    
-    # Bottom curve
-    bottom_points = [
-        (x + 3 * width // 4, mid_y),
-        (x + width, y + 2 * height // 3),
-        (x + width, y + 5 * height // 6),
-        (x + 3 * width // 4, y + height),
-        (x + width // 4, y + height),
-        (x, y + 5 * height // 6)
-    ]
-    draw_smooth_curve(draw, bottom_points, thickness, color)
-
-def draw_font_four(draw, x, y, size, color):
-    """Draw font-like '4' - angled left line, vertical right, horizontal cross"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
-    height = size
-    
-    # Left angled line
-    cross_y = y + 2 * height // 3
-    draw_smooth_line(draw, x + width // 4, y, x, cross_y, thickness, color)
-    
-    # Right vertical line
-    right_x = x + 3 * width // 4
-    draw_smooth_line(draw, right_x, y, right_x, y + height, thickness, color)
-    
-    # Horizontal cross line
-    draw_smooth_line(draw, x, cross_y, x + width, cross_y, thickness, color)
-
-def draw_font_five(draw, x, y, size, color):
-    """Draw font-like '5' - top line, vertical, curve"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
-    height = size
-    
-    # Top line
-    draw_smooth_line(draw, x, y, x + width, y, thickness, color)
-    
-    # Left vertical (top half)
-    mid_y = y + height // 2
-    draw_smooth_line(draw, x, y, x, mid_y, thickness, color)
-    
-    # Middle horizontal
-    draw_smooth_line(draw, x, mid_y, x + 2 * width // 3, mid_y, thickness, color)
-    
-    # Bottom curve
-    bottom_points = [
-        (x + 2 * width // 3, mid_y),
-        (x + width, y + 2 * height // 3),
-        (x + width, y + 5 * height // 6),
-        (x + 3 * width // 4, y + height),
-        (x + width // 4, y + height),
-        (x, y + 5 * height // 6)
-    ]
-    draw_smooth_curve(draw, bottom_points, thickness, color)
-
-def draw_font_six(draw, x, y, size, color):
-    """Draw font-like '6' - curve with inner loop"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
-    height = size
-    
-    # Main outer curve
-    center_x = x + width // 2
-    bottom_center_y = y + 3 * height // 4
-    
-    # Draw main shape
-    draw_font_zero(draw, x, y + height // 2, height // 2, color)  # Bottom circle
-    
-    # Top curve
-    top_points = [
-        (x + width, y + height // 6),
-        (x + 3 * width // 4, y),
-        (x + width // 4, y),
-        (x, y + height // 4),
-        (x, y + height // 2)
-    ]
-    draw_smooth_curve(draw, top_points, thickness, color)
-
-def draw_font_seven(draw, x, y, size, color):
-    """Draw font-like '7' - top line and diagonal"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
-    height = size
-    
-    # Top line
-    draw_smooth_line(draw, x, y, x + width, y, thickness, color)
-    
-    # Diagonal line
-    draw_smooth_line(draw, x + width, y, x + width // 4, y + height, thickness, color)
-
-def draw_font_eight(draw, x, y, size, color):
-    """Draw font-like '8' - two stacked ovals"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
-    height = size
-    
-    # Top oval (smaller)
-    top_height = height // 2
-    draw_font_zero(draw, x, y, top_height, color)
-    
-    # Bottom oval (larger)
-    bottom_height = height // 2
-    draw_font_zero(draw, x, y + height // 2, bottom_height, color)
-
-def draw_font_nine(draw, x, y, size, color):
-    """Draw font-like '9' - oval top with tail"""
-    thickness = max(2, size // 8)
-    width = int(size * 0.7)
-    height = size
-    
-    # Top circle
-    draw_font_zero(draw, x, y, height // 2, color)
-    
-    # Right vertical line (tail)
-    right_x = x + width - thickness // 2
-    draw_smooth_line(draw, right_x, y + height // 2, right_x, y + height, thickness, color)
-    
-    # Bottom curve
-    bottom_points = [
-        (right_x, y + height),
-        (x + width // 2, y + height),
-        (x, y + 3 * height // 4)
-    ]
-    draw_smooth_curve(draw, bottom_points, thickness, color)
+        # Top circle with tail
+        mid_y = y + height // 2
+        draw.ellipse([x, y, x + width, mid_y], outline=color, width=thickness)
+        draw.line([(x + width, mid_y), (x + width, y + height)], fill=color, width=thickness)
+        draw.line([(x + width, y + height), (x + width//2, y + height)], fill=color, width=thickness)
+    elif digit == '.':
+        # Dot
+        dot_size = max(3, size // 6)
+        dot_y = y + height - dot_size
+        draw.ellipse([x, dot_y, x + dot_size, dot_y + dot_size], fill=color)
 
 def draw_vector_dot(draw, x, y, size, color=(0, 0, 0)):
-    """Draw a professional circular dot for decimal points"""
-    dot_size = max(3, size // 6)  # Proportional dot size
-    dot_y = y + size - dot_size - (size // 8)  # Better positioning
+    """Draw a simple circular dot for decimal points"""
+    dot_size = max(3, size // 6)
+    dot_y = y + size - dot_size - (size // 8)
     
-    # Draw perfect circle
-    center_x = x + dot_size // 2
-    center_y = dot_y + dot_size // 2
-    radius = dot_size // 2
-    
-    # Anti-aliased circle using multiple layers
-    for r in range(radius + 1):
-        for dy in range(-r, r + 1):
-            for dx in range(-r, r + 1):
-                distance_sq = dx*dx + dy*dy
-                if distance_sq <= r*r:
-                    # Create smooth edges with intensity falloff
-                    if distance_sq <= (r-1)*(r-1) or r <= 2:
-                        draw.rectangle([center_x + dx, center_y + dy, center_x + dx + 1, center_y + dy + 1], fill=color)
+    # Draw simple circle
+    draw.ellipse([x, dot_y, x + dot_size, dot_y + dot_size], fill=color)
 
 def draw_vector_panel_number(draw, panel_number, x, y, size, color=(0, 0, 0)):
     """Draw panel number using PROFESSIONAL FONT-LIKE digits - REFERENCE QUALITY"""
