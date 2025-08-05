@@ -859,6 +859,9 @@ def generate_pixel_map():
         show_logo = config.get('showLogo', False)
         surface_index = config.get('surfaceIndex', 0)
         
+        # Get surface name for center text overlay (default to "Screen One")
+        surface_name = config.get('surfaceName', 'Screen One')
+        
         # Add debug logging for visual overlays and grid controls
         logger.info(f"🎨 Visual Overlays: Name={show_name}, Cross={show_cross}, Circle={show_circle}, Logo={show_logo}")
         logger.info(f"🔧 Grid Controls: Grid={show_grid}, Panel Numbers={show_panel_numbers}")
@@ -896,7 +899,8 @@ def generate_pixel_map():
                 'showCross': show_cross,
                 'showCircle': show_circle,
                 'showLogo': show_logo,
-                'ledName': led_name
+                'ledName': led_name,
+                'surfaceName': surface_name
             }
             
             image = generate_pixel_map_optimized(
