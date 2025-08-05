@@ -665,18 +665,30 @@ def generate_pixel_map():
                 'error': 'No data provided'
             }), 400
         
-        # Extract dimensions
+        # Extract dimensions - Support both old nested format and new simple format
         surface = data.get('surface', {})
         config = data.get('config', {})
-        panels_width = surface.get('panelsWidth', 10)
-        panels_height = surface.get('fullPanelsHeight', 5)
-        panel_pixel_width = surface.get('panelPixelWidth', 200)
-        panel_pixel_height = surface.get('panelPixelHeight', 200)
-        led_name = surface.get('ledName', 'Unknown LED')
         
-        show_grid = config.get('showGrid', True)
-        show_panel_numbers = config.get('showPanelNumbers', True)
-        surface_index = config.get('surfaceIndex', 0)
+        # NEW SIMPLE FORMAT (used by test scripts)
+        if 'width' in data and 'height' in data:
+            panels_width = data.get('width', 10)
+            panels_height = data.get('height', 5)
+            panel_pixel_width = data.get('ledPanelWidth', 200)
+            panel_pixel_height = data.get('ledPanelHeight', 200)
+            led_name = data.get('ledName', 'Unknown LED')
+            show_grid = data.get('showGrid', True)
+            show_panel_numbers = data.get('showPanelNumbers', True)
+            surface_index = 0
+        # OLD NESTED FORMAT (used by Flutter app)
+        else:
+            panels_width = surface.get('panelsWidth', 10)
+            panels_height = surface.get('fullPanelsHeight', 5)
+            panel_pixel_width = surface.get('panelPixelWidth', 200)
+            panel_pixel_height = surface.get('panelPixelHeight', 200)
+            led_name = surface.get('ledName', 'Unknown LED')
+            show_grid = config.get('showGrid', True)
+            show_panel_numbers = config.get('showPanelNumbers', True)
+            surface_index = config.get('surfaceIndex', 0)
         
         # Calculate total dimensions
         total_width = panels_width * panel_pixel_width
