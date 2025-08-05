@@ -6,12 +6,9 @@ import '../models/surface_model.dart';
 import 'cloud_pixel_map_service.dart';
 
 class PixelMapService {
-  // CLOUD-ONLY for large images - REMOVE ARTIFICIAL LIMITS
-  // Small images (≤1M pixels): Local browser generation
-  // Large images (>1M pixels): Cloud service with NO arbitrary limits
-  // Let the cloud service handle its own limits naturally
-  static const int _canvasLimitThreshold = 1000000; // 1M pixels
-  // REMOVED: 50000000 - no artificial limits!
+  // ALWAYS USE CLOUD SERVICE - All pixel maps generated on Render.com
+  static const int _canvasLimitThreshold =
+      0; // Force all to cloud (was 16M pixels)
 
   /// All pixel map generation now happens on Render.com cloud service
   /// This ensures consistent quality, no Canvas API limits, and native PNG output
@@ -29,21 +26,15 @@ class PixelMapService {
     final totalPixels = calc.pixelsWidth * calc.pixelsHeight;
 
     debugPrint(
-      'Pixel Map Generation: ${calc.pixelsWidth}×${calc.pixelsHeight} = $totalPixels pixels',
+      'Cloud Pixel Map: ${calc.pixelsWidth}×${calc.pixelsHeight} = $totalPixels pixels (all generated on Render.com)',
     );
 
-    // CLOUD-ONLY strategy for large images to avoid browser limitations
+    // ALL images use cloud service for consistent quality and no local limits
     if (totalPixels > _canvasLimitThreshold) {
+      // Always true since threshold = 0
       debugPrint(
-        'Large image detected (${totalPixels} pixels), using CLOUD SERVICE ONLY...',
+        'Generating on Render.com cloud service ($totalPixels pixels)...',
       );
-
-      // Check if image is extremely large
-      if (totalPixels > 50000000) {
-        debugPrint(
-          'Ultra-large image detected (${totalPixels} pixels > ${50000000} limit)',
-        );
-      }
 
       try {
         final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
@@ -60,52 +51,41 @@ class PixelMapService {
           return cloudResult.imageBytes!;
         } else {
           debugPrint('Cloud generation failed: ${cloudResult.errorMessage}');
-          
-          // Provide specific guidance based on image size
-          String errorMessage;
-          if (totalPixels > 50000000) {
-            errorMessage = 'Ultra-large pixel map (${(totalPixels/1000000).toStringAsFixed(1)}M pixels) failed to generate. '
-                'The cloud service is processing your request but encountered an issue. '
-                'Your image has ${(totalPixels/1000000).toStringAsFixed(1)}M pixels. '
-                'This may be due to:\n'
-                '• Temporary server load - please try again\n'
-                '• Memory constraints - the service is being optimized\n'
-                '• Network timeout for very large images\n'
-                '• Consider breaking into smaller sections if issues persist\n\n'
-                'Error: ${cloudResult.errorMessage}';
-          } else {
-            errorMessage = 'Large pixel map generation failed. Cloud service error: ${cloudResult.errorMessage}. '
-                'Please try again in a few minutes.';
-          }
-          
-          throw Exception(errorMessage);
+          throw Exception(
+            'Cloud generation failed: ${cloudResult.errorMessage}',
+          );
         }
       } catch (e) {
         debugPrint('Cloud service error: $e');
-        
-        // Provide specific guidance based on image size
-        String errorMessage;
-        if (totalPixels > 50000000) {
-          errorMessage = 'Ultra-large pixel map (${(totalPixels/1000000).toStringAsFixed(1)}M pixels) cannot be generated currently. '
-              'The cloud service is being optimized for ultra-large images. '
-              'Your image has ${(totalPixels/1000000).toStringAsFixed(1)}M pixels. '
-              'Try:\n'
-              '• Waiting a few minutes and trying again\n'
-              '• Breaking the display into smaller sections\n'
-              '• Using a slightly lower resolution\n'
-              '• Contacting support if this persists';
-        } else {
-          errorMessage = 'Large pixel map generation failed. Cloud service is temporarily unavailable. '
-              'Please try again in a few minutes or contact support if this persists.';
-        }
-        
-        throw Exception(errorMessage);
+        throw Exception(
+          'Failed to generate large pixel map via cloud service: $e',
+        );
       }
     } else {
-      debugPrint('Small image (${totalPixels} pixels), using local browser generation...');
-      
-      // Small images use local generation only
-      return await createPixelMapImage(surface, index);
+      debugPrint('All images now use cloud generation for consistency...');
+      try {
+        final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
+          surface,
+          index,
+          showGrid: showGrid,
+          showPanelNumbers: showPanelNumbers,
+        );
+
+        if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
+          debugPrint(
+            'Cloud generation successful: ${cloudResult.width}×${cloudResult.height}px (${cloudResult.fileSizeMB}MB)',
+          );
+          return cloudResult.imageBytes!;
+        } else {
+          debugPrint('Cloud generation failed: ${cloudResult.errorMessage}');
+          throw Exception(
+            'Cloud generation failed: ${cloudResult.errorMessage}',
+          );
+        }
+      } catch (e) {
+        debugPrint('Cloud service error: $e');
+        throw Exception('Failed to generate pixel map via cloud service: $e');
+      }
     }
   }
 
@@ -121,21 +101,14 @@ class PixelMapService {
     final totalPixels = imageWidth * imageHeight;
 
     debugPrint(
-      'Ultra Pixel Perfect: ${imageWidth}×${imageHeight} = $totalPixels pixels',
+      'Smart Ultra Pixel Perfect: $imageWidth×$imageHeight = $totalPixels pixels',
     );
 
-    // CLOUD-ONLY strategy for ultra pixel perfect - NO local browser generation
+    // For large images, use cloud service
     if (totalPixels > _canvasLimitThreshold) {
       debugPrint(
-        'Large ultra image detected ($totalPixels pixels), using CLOUD SERVICE ONLY...',
+        'Large ultra image detected ($totalPixels pixels), using cloud service...',
       );
-
-      // Check if image is extremely large
-      if (totalPixels > 50000000) {
-        debugPrint(
-          'Ultra-large image detected (${totalPixels} pixels > ${50000000} limit)',
-        );
-      }
 
       try {
         final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
@@ -154,59 +127,41 @@ class PixelMapService {
           debugPrint(
             'Cloud ultra generation failed: ${cloudResult.errorMessage}',
           );
-          
-          // Provide specific guidance based on image size
-          String errorMessage;
-          if (totalPixels > 50000000) {
-            errorMessage = 'Ultra-large pixel-perfect map (${imageWidth}×${imageHeight} = ${(totalPixels/1000000).toStringAsFixed(1)}M pixels) failed. '
-                'The cloud service is processing ultra-large images but encountered an issue. '
-                'Your image has ${(totalPixels/1000000).toStringAsFixed(1)}M pixels. '
-                'This may be due to:\n'
-                '• Temporary server load - please try again\n'
-                '• Memory optimization in progress\n'
-                '• Network timeout for very large images\n'
-                '• Consider using smaller dimensions if issues persist\n\n'
-                'Error: ${cloudResult.errorMessage}';
-          } else {
-            errorMessage = 'Ultra pixel-perfect generation failed. Cloud service error: ${cloudResult.errorMessage}. '
-                'Please try again in a few minutes.';
-          }
-          
-          throw Exception(errorMessage);
+          throw Exception(
+            'Cloud ultra generation failed: ${cloudResult.errorMessage}',
+          );
         }
       } catch (e) {
         debugPrint('Cloud ultra service error: $e');
-        
-        // Provide specific guidance based on image size
-        String errorMessage;
-        if (totalPixels > 50000000) {
-          errorMessage = 'Ultra-large pixel-perfect map (${imageWidth}×${imageHeight} = ${(totalPixels/1000000).toStringAsFixed(1)}M pixels) cannot be generated. '
-              'The cloud service can reliably handle up to 8M pixels (e.g., 4000×2000px). '
-              'Your image has ${(totalPixels/1000000).toStringAsFixed(1)}M pixels. '
-              'Consider:\n'
-              '• Using smaller dimensions (max recommended: 4000×2000px)\n'
-              '• Breaking the display into sections\n'
-              '• Splitting into multiple pixel maps\n'
-              '• Contacting support for enterprise solutions';
-        } else {
-          errorMessage = 'Ultra pixel-perfect generation failed. Cloud service is temporarily unavailable. '
-              'Please try again in a few minutes or contact support if this persists.';
-        }
-        
-        throw Exception(errorMessage);
+        throw Exception(
+          'Failed to generate ultra large pixel map via cloud service: $e',
+        );
       }
     } else {
-      debugPrint('Small ultra image ($totalPixels pixels), using local browser generation...');
-      
-      // Small images use local ultra generation
-      return await createUltraPixelPerfectImage(
-        surface,
-        index,
-        imageWidth: imageWidth,
-        imageHeight: imageHeight,
-        showPanelNumbers: showPanelNumbers,
-        showGrid: showGrid,
-      );
+      debugPrint('All images now use cloud generation for consistency...');
+      try {
+        final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
+          surface,
+          index,
+          showGrid: showGrid,
+          showPanelNumbers: showPanelNumbers,
+        );
+
+        if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
+          debugPrint(
+            'Cloud generation successful: ${cloudResult.width}×${cloudResult.height}px (${cloudResult.fileSizeMB}MB)',
+          );
+          return cloudResult.imageBytes!;
+        } else {
+          debugPrint('Cloud generation failed: ${cloudResult.errorMessage}');
+          throw Exception(
+            'Cloud generation failed: ${cloudResult.errorMessage}',
+          );
+        }
+      } catch (e) {
+        debugPrint('Cloud service error: $e');
+        throw Exception('Failed to generate pixel map via cloud service: $e');
+      }
     }
   }
 

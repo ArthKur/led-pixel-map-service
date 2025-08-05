@@ -80,11 +80,13 @@ class CloudPixelMapService {
           } else if (responseData.containsKey('image')) {
             imageBase64 = responseData['image'] as String?;
           }
-          
+
           if (imageBase64 == null) {
-            return CloudPixelMapResult.error('No image data received from cloud service');
+            return CloudPixelMapResult.error(
+              'No image data received from cloud service',
+            );
           }
-          
+
           final imageBytes = base64Decode(imageBase64);
 
           // Note: The cloud service provides PNG data ready for use
