@@ -654,7 +654,7 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer - ENHANCED GRID v2.0',
         'status': 'healthy',
-        'version': '13.0 - ENHANCED GRID: 50% brighter, 2-3px thick borders, NO WHITE LINES',
+        'version': '14.0 - BORDER SPACING FIX: Panels no longer overwrite borders, BRIGHT RED 2-3px grid',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
