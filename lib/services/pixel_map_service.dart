@@ -17,6 +17,10 @@ class PixelMapService {
     int index, {
     bool showGrid = true,
     bool showPanelNumbers = true,
+    bool showName = false,
+    bool showCross = false,
+    bool showCircle = false,
+    bool showLogo = false,
   }) async {
     if (surface.calculation == null) {
       throw Exception('Surface calculation is null');
@@ -42,6 +46,10 @@ class PixelMapService {
           index,
           showGrid: showGrid,
           showPanelNumbers: showPanelNumbers,
+          showName: showName,
+          showCross: showCross,
+          showCircle: showCircle,
+          showLogo: showLogo,
         );
 
         if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
@@ -97,6 +105,10 @@ class PixelMapService {
     required int imageHeight,
     bool showPanelNumbers = true,
     bool showGrid = true,
+    bool showName = false,
+    bool showCross = false,
+    bool showCircle = false,
+    bool showLogo = false,
   }) async {
     final totalPixels = imageWidth * imageHeight;
 
@@ -116,6 +128,10 @@ class PixelMapService {
           index,
           showGrid: showGrid,
           showPanelNumbers: showPanelNumbers,
+          showName: showName,
+          showCross: showCross,
+          showCircle: showCircle,
+          showLogo: showLogo,
         );
 
         if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
@@ -145,6 +161,10 @@ class PixelMapService {
           index,
           showGrid: showGrid,
           showPanelNumbers: showPanelNumbers,
+          showName: showName,
+          showCross: showCross,
+          showCircle: showCircle,
+          showLogo: showLogo,
         );
 
         if (cloudResult.isSuccess && cloudResult.imageBytes != null) {

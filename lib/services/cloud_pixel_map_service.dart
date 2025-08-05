@@ -55,6 +55,9 @@ class CloudPixelMapService {
           'showCross': showCross,
           'showCircle': showCircle,
           'showLogo': showLogo,
+          'surfaceName': surface.name.isEmpty
+              ? 'Screen ${index + 1}'
+              : surface.name,
         },
       };
 
