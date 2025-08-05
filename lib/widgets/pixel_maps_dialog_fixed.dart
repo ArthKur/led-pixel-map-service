@@ -4,6 +4,8 @@ import '../models/surface_model.dart';
 import '../services/cloud_pixel_map_service.dart';
 import 'dart:io' show Platform, File, Directory;
 import 'package:flutter/foundation.dart' show kIsWeb;
+// Conditional import for web download functionality
+import 'dart:html' as html if (dart.library.io) '';
 
 // Border colors as per style guide
 const Color borderColorLight = Color(0xFFE7DCCC); // Lighter border #E7DCCC
@@ -375,7 +377,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
         print('🔄 Starting generation for surface: ${surface.name}');
         final imageBytes = await _createPixelMapImage(surface, originalIndex);
         print('✅ Image generated: ${imageBytes.length} bytes');
-        
+
         final fileName = _generateFileName(surface, originalIndex);
         print('💾 Attempting to download: $fileName');
 
@@ -397,7 +399,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
     }
 
     print('🔄 Generating pixel map for ${surface.name} via cloud service...');
-    
+
     // Import the cloud service
     final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
       surface,
@@ -407,7 +409,9 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
     );
 
     if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
-      print('✅ Cloud generation successful: ${cloudResult.width}×${cloudResult.height}px (${cloudResult.fileSizeMB}MB)');
+      print(
+        '✅ Cloud generation successful: ${cloudResult.width}×${cloudResult.height}px (${cloudResult.fileSizeMB}MB)',
+      );
       return cloudResult.imageBytes!;
     } else {
       print('❌ Cloud generation failed: ${cloudResult.errorMessage}');
@@ -447,18 +451,40 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
   ) async {
     try {
       if (kIsWeb) {
-        // Web platform - show message that download is not available
-        _showMessage('Download not available on this platform. Try web version or save from cloud service.');
+        // Web platform - use browser download API
+        try {
+          // Create a blob URL for the image data
+          final blob = html.Blob([imageBytes]);
+          final url = html.Url.createObjectUrlFromBlob(blob);
+
+          // Create download link and trigger download
+          final anchor = html.AnchorElement(href: url)
+            ..setAttribute('download', fileName)
+            ..style.display = 'none';
+
+          html.document.body?.children.add(anchor);
+          anchor.click();
+          html.document.body?.children.remove(anchor);
+          html.Url.revokeObjectUrl(url);
+
+          _showMessage('✅ File downloaded: $fileName');
+          print('Web download triggered for: $fileName');
+        } catch (e) {
+          print('Web download error: $e');
+          _showMessage('❌ Web download failed: $e');
+        }
       } else {
         // Desktop platforms - save to file system
         try {
           // Get the user's home directory
-          final homeDir = Platform.environment['HOME'] ?? '/Users/${Platform.environment['USER']}';
-          
+          final homeDir =
+              Platform.environment['HOME'] ??
+              '/Users/${Platform.environment['USER']}';
+
           // Try Desktop first
           final desktopPath = '$homeDir/Desktop';
           final desktopDir = Directory(desktopPath);
-          
+
           if (await desktopDir.exists()) {
             final file = File('$desktopPath/$fileName');
             await file.writeAsBytes(imageBytes);
@@ -468,7 +494,7 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
             // Fallback: try Downloads folder
             final downloadsPath = '$homeDir/Downloads';
             final downloadsDir = Directory(downloadsPath);
-            
+
             if (await downloadsDir.exists()) {
               final file = File('$downloadsPath/$fileName');
               await file.writeAsBytes(imageBytes);
