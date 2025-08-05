@@ -54,6 +54,10 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
             config = {}
         show_grid = config.get('showGrid', True)
         show_panel_numbers = config.get('showPanelNumbers', True)
+        show_name = config.get('showName', False)
+        show_cross = config.get('showCross', False)
+        show_circle = config.get('showCircle', False)
+        show_logo = config.get('showLogo', False)
         
         # Calculate scaled dimensions
         canvas_width = int(width * canvas_scale)
@@ -72,7 +76,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         if total_pixels > 50_000_000:  # 50M+ pixels - use chunked processing
             logger.info(f"🔄 CHUNKED: Using enhanced chunked processing for {total_pixels:,} pixels")
             led_name = config.get('ledName', 'Absen')
-            return generate_chunked_pixel_map(canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid, show_panel_numbers, led_name)
+            return generate_chunked_pixel_map(canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid, show_panel_numbers, led_name, show_name, show_cross, show_circle, show_logo)
         
         # Standard generation for smaller images (< 50M pixels)
         logger.info(f"📊 STANDARD: Using standard processing for {total_pixels:,} pixels")
@@ -80,7 +84,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         # For small images, use the full quality rendering with numbering
         led_name = config.get('ledName', 'Absen')
         return generate_full_quality_pixel_map(canvas_width, canvas_height, led_panel_width, led_panel_height, 
-                                             show_grid, show_panel_numbers, led_name)
+                                             show_grid, show_panel_numbers, led_name, show_name, show_cross, show_circle, show_logo)
         
         return image
         
@@ -89,7 +93,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         logger.error(traceback.format_exc())
         raise
 
-def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True, led_name='Absen'):
+def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False):
     """Generate full quality pixel map with numbering and grid for smaller images"""
     try:
         # Calculate panel dimensions
@@ -165,6 +169,9 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                         draw, panel_number, text_x, text_y, 
                         number_size, color=(255, 255, 255)  # WHITE numbers for better visibility
                     )
+
+        # Add new visual elements based on config
+        add_visual_overlays(draw, display_width, display_height, led_name, show_name, show_cross, show_circle, show_logo)
         
         # Final memory check
         final_memory = get_memory_info()
@@ -204,7 +211,7 @@ def generate_simple_grid(draw, canvas_width, canvas_height, led_panel_width, led
         logger.error(f"Error in simple grid generation: {str(e)}")
         raise
 
-def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen'):
+def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False):
     """Generate ultra-large images in chunks to manage memory - ENHANCED FOR 200M PIXELS"""
     logger.info(f"🚀 ENHANCED: Generating {width}×{height}px image in optimized chunks")
     
@@ -258,6 +265,11 @@ def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_
                 logger.info(f"Progress: {progress:.1f}% ({chunks_processed}/{total_chunks} chunks) - Memory: {memory_info['rss_mb']:.1f}MB")
     
     logger.info(f"✅ Completed chunked generation: {chunks_processed} chunks processed")
+    
+    # Add visual overlays after chunked generation is complete
+    draw = ImageDraw.Draw(image)
+    add_visual_overlays(draw, width, height, led_name, show_name, show_cross, show_circle, show_logo)
+    
     return image
 
 def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, offset_y, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen'):
@@ -584,6 +596,140 @@ def draw_vector_panel_number(draw, panel_number, x, y, size, color=(0, 0, 0)):
             # Skip other characters but leave small space
             current_x += digit_width // 4
 
+def add_visual_overlays(draw, width, height, surface_name, show_name=False, show_cross=False, show_circle=False, show_logo=False):
+    """Add visual overlays like name, cross, circle and logo to the pixel map"""
+    
+    logger.info(f"🎨 add_visual_overlays called: w={width}, h={height}, name='{surface_name}'")
+    logger.info(f"🎨 Overlay flags: name={show_name}, cross={show_cross}, circle={show_circle}, logo={show_logo}")
+    
+    center_x = width // 2
+    center_y = height // 2
+    
+    # 1. Add CENTER NAME (30% of surface dimensions, amber color)
+    if show_name and surface_name:
+        # Calculate text size based on 30% of surface dimensions
+        name_width = int(width * 0.3)
+        name_height = int(height * 0.3)
+        text_size = min(name_width, name_height) // len(surface_name)
+        text_size = max(20, min(text_size, 200))  # Reasonable bounds
+        
+        # Amber color as requested
+        amber_color = (255, 191, 0)  # Pure amber
+        
+        # Calculate text position to center it
+        text_width_estimate = len(surface_name) * text_size * 0.6
+        text_x = center_x - int(text_width_estimate // 2)
+        text_y = center_y - text_size // 2
+        
+        # Draw the surface name using vector text
+        draw_vector_text(draw, surface_name, text_x, text_y, text_size, amber_color)
+        
+        logger.info(f"✅ Added center name: '{surface_name}' at {text_x},{text_y} size={text_size}")
+    
+    # 2. Add CIRCLE (white line 1px thick, center to full height)
+    if show_circle:
+        circle_color = (255, 255, 255)  # White
+        # Circle from center, filling top to bottom (radius = half height)
+        radius = height // 2
+        
+        # Draw circle outline with 1px thickness
+        bbox = [center_x - radius, center_y - radius, center_x + radius, center_y + radius]
+        try:
+            # PIL doesn't have a direct circle outline, so we'll use ellipse
+            draw.ellipse(bbox, outline=circle_color, width=1)
+            logger.info(f"✅ Added circle: center=({center_x},{center_y}) radius={radius}")
+        except:
+            # Fallback: draw as arc if ellipse fails
+            draw.arc(bbox, 0, 360, fill=circle_color, width=1)
+    
+    # 3. Add CROSS LINES (diagonal from opposite corners)
+    if show_cross:
+        cross_color = (255, 255, 255)  # White
+        
+        # Draw diagonal lines from corners
+        # Top-left to bottom-right
+        draw.line([(0, 0), (width-1, height-1)], fill=cross_color, width=1)
+        # Top-right to bottom-left  
+        draw.line([(width-1, 0), (0, height-1)], fill=cross_color, width=1)
+        
+        logger.info(f"✅ Added cross lines: diagonal from corners")
+    
+    # 4. Add LOGO (placeholder for future implementation)
+    if show_logo:
+        # For now, just log that logo was requested
+        logger.info(f"✅ Logo requested (not yet implemented)")
+
+def draw_vector_text(draw, text, x, y, size, color):
+    """Draw text using vector digits and basic characters"""
+    current_x = x
+    char_width = int(size * 0.8)
+    char_spacing = max(2, size // 10)
+    
+    for char in text.upper():
+        if char.isdigit():
+            draw_vector_digit(draw, char, current_x, y, size, color)
+        elif char.isalpha():
+            # For letters, draw a simple representation using lines
+            draw_vector_letter(draw, char, current_x, y, size, color)
+        elif char == ' ':
+            # Space character
+            current_x += char_width // 2
+            continue
+        else:
+            # Skip unknown characters
+            pass
+            
+        current_x += char_width + char_spacing
+
+def draw_vector_letter(draw, letter, x, y, size, color):
+    """Draw basic vector letters using simple line patterns"""
+    line_width = max(1, size // 20)
+    
+    # Simple letter patterns using lines
+    if letter == 'A':
+        # Draw letter A
+        draw.line([(x, y + size), (x + size//2, y), (x + size, y + size)], fill=color, width=line_width)
+        draw.line([(x + size//4, y + size//2), (x + 3*size//4, y + size//2)], fill=color, width=line_width)
+    elif letter == 'B':
+        # Draw letter B - simplified
+        draw.line([(x, y), (x, y + size)], fill=color, width=line_width)
+        draw.line([(x, y), (x + size//2, y)], fill=color, width=line_width)
+        draw.line([(x, y + size//2), (x + size//2, y + size//2)], fill=color, width=line_width)
+        draw.line([(x, y + size), (x + size//2, y + size)], fill=color, width=line_width)
+    elif letter == 'C':
+        # Draw letter C
+        draw.line([(x + size, y), (x, y), (x, y + size), (x + size, y + size)], fill=color, width=line_width)
+    elif letter == 'E':
+        # Draw letter E
+        draw.line([(x, y), (x, y + size)], fill=color, width=line_width)
+        draw.line([(x, y), (x + size, y)], fill=color, width=line_width)
+        draw.line([(x, y + size//2), (x + size//2, y + size//2)], fill=color, width=line_width)
+        draw.line([(x, y + size), (x + size, y + size)], fill=color, width=line_width)
+    elif letter == 'N':
+        # Draw letter N
+        draw.line([(x, y), (x, y + size)], fill=color, width=line_width)
+        draw.line([(x, y), (x + size, y + size)], fill=color, width=line_width)
+        draw.line([(x + size, y), (x + size, y + size)], fill=color, width=line_width)
+    elif letter == 'O':
+        # Draw letter O as rectangle outline
+        draw.rectangle([x, y, x + size, y + size], outline=color, width=line_width)
+    elif letter == 'R':
+        # Draw letter R
+        draw.line([(x, y), (x, y + size)], fill=color, width=line_width)
+        draw.line([(x, y), (x + size, y)], fill=color, width=line_width)
+        draw.line([(x, y + size//2), (x + size, y + size//2)], fill=color, width=line_width)
+        draw.line([(x + size//2, y + size//2), (x + size, y + size)], fill=color, width=line_width)
+    elif letter == 'S':
+        # Draw letter S - simplified
+        draw.line([(x + size, y), (x, y), (x, y + size//2), (x + size, y + size//2), (x + size, y + size), (x, y + size)], fill=color, width=line_width)
+    elif letter == 'T':
+        # Draw letter T
+        draw.line([(x, y), (x + size, y)], fill=color, width=line_width)
+        draw.line([(x + size//2, y), (x + size//2, y + size)], fill=color, width=line_width)
+    else:
+        # For other letters, draw a simple rectangle as placeholder
+        draw.rectangle([x, y, x + size//2, y + size], outline=color, width=line_width)
+
 def generate_color(panel_x, panel_y, led_name='Absen'):
     """Generate colors based on LED type and panel position"""
     
@@ -676,7 +822,15 @@ def generate_pixel_map():
         
         show_grid = config.get('showGrid', True)
         show_panel_numbers = config.get('showPanelNumbers', True)
+        show_name = config.get('showName', False)
+        show_cross = config.get('showCross', False)
+        show_circle = config.get('showCircle', False)
+        show_logo = config.get('showLogo', False)
         surface_index = config.get('surfaceIndex', 0)
+        
+        # Add debug logging for visual overlays
+        logger.info(f"🎨 Visual Overlays: Name={show_name}, Cross={show_cross}, Circle={show_circle}, Logo={show_logo}")
+        logger.info(f"📛 Surface Name: '{led_name}'")
         
         # Calculate total dimensions
         total_width = panels_width * panel_pixel_width
@@ -706,6 +860,10 @@ def generate_pixel_map():
             config_dict = {
                 'showGrid': show_grid,
                 'showPanelNumbers': show_panel_numbers,
+                'showName': show_name,
+                'showCross': show_cross,
+                'showCircle': show_circle,
+                'showLogo': show_logo,
                 'ledName': led_name
             }
             
