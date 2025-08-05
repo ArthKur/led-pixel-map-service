@@ -174,7 +174,7 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                     )
 
         # Add new visual elements based on config
-        add_visual_overlays(draw, display_width, display_height, led_name, show_name, show_cross, show_circle, show_logo)
+        add_visual_overlays(draw, display_width, display_height, surface_name, show_name, show_cross, show_circle, show_logo)
         
         # Final memory check
         final_memory = get_memory_info()
@@ -271,7 +271,7 @@ def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_
     
     # Add visual overlays after chunked generation is complete
     draw = ImageDraw.Draw(image)
-    add_visual_overlays(draw, width, height, led_name, show_name, show_cross, show_circle, show_logo)
+    add_visual_overlays(draw, width, height, surface_name, show_name, show_cross, show_circle, show_logo)
     
     return image
 
@@ -894,7 +894,8 @@ def generate_pixel_map():
         # Add debug logging for visual overlays and grid controls
         logger.info(f"🎨 Visual Overlays: Name={show_name}, Cross={show_cross}, Circle={show_circle}, Logo={show_logo}")
         logger.info(f"🔧 Grid Controls: Grid={show_grid}, Panel Numbers={show_panel_numbers}")
-        logger.info(f"📛 Surface Name: '{led_name}'")
+        logger.info(f"📛 Surface Name: '{surface_name}' (show_name={show_name})")
+        logger.info(f"🏷️ LED Name: '{led_name}'")
         
         # Calculate total dimensions
         total_width = panels_width * panel_pixel_width
