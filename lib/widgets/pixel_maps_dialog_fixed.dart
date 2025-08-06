@@ -55,7 +55,11 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
   final Map<int, bool> _selectedSurfaces =
       {}; // Track which surfaces are selected
   bool _showPanelNumbers = true; // Control panel numbering display
-  bool _showGrid = true; // Control grid display
+  bool _showGrid = true; // Control grid display - test if toggle works
+  bool _showName = false; // Start unchecked for testing
+  bool _showCross = false; // Start unchecked for testing
+  bool _showCircle = false; // Start unchecked for testing
+  bool _showLogo = false; // Start unchecked for testing
 
   @override
   void initState() {
@@ -222,41 +226,152 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                 .toList(),
           ),
           const SizedBox(height: 15),
-          // Panel numbering checkbox
-          CheckboxListTile(
-            title: Text(
-              'Show Panel Numbers',
-              style: TextStyle(
-                color: widget.isDarkMode ? Colors.white : textColorPrimary,
-                fontSize: 14,
+          // Checkboxes in a single row
+          Row(
+            children: [
+              Expanded(
+                flex: 1,
+                child: CheckboxListTile(
+                  title: Text(
+                    'Panel Numbers',
+                    style: TextStyle(
+                      color: widget.isDarkMode
+                          ? Colors.white
+                          : textColorPrimary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  value: _showPanelNumbers,
+                  onChanged: (value) {
+                    setState(() {
+                      _showPanelNumbers = value ?? true;
+                    });
+                  },
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
               ),
-            ),
-            value: _showPanelNumbers,
-            onChanged: (value) {
-              setState(() {
-                _showPanelNumbers = value ?? true;
-              });
-            },
-            controlAffinity: ListTileControlAffinity.leading,
-            dense: true,
-          ),
-          // Grid toggle
-          CheckboxListTile(
-            title: Text(
-              'Grid',
-              style: TextStyle(
-                color: widget.isDarkMode ? Colors.white : textColorPrimary,
-                fontSize: 14,
+              Expanded(
+                flex: 1,
+                child: CheckboxListTile(
+                  title: Text(
+                    'Grid',
+                    style: TextStyle(
+                      color: widget.isDarkMode
+                          ? Colors.white
+                          : textColorPrimary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  value: _showGrid,
+                  onChanged: (value) {
+                    print('🔧 GRID CHECKBOX CLICKED!');
+                    print('🔧 Old value: $_showGrid');
+                    print('🔧 New value: $value');
+                    setState(() {
+                      _showGrid = value ?? false;
+                    });
+                    print('🔧 Final state: $_showGrid');
+                  },
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
               ),
-            ),
-            value: _showGrid,
-            onChanged: (value) {
-              setState(() {
-                _showGrid = value ?? true;
-              });
-            },
-            controlAffinity: ListTileControlAffinity.leading,
-            dense: true,
+              Expanded(
+                flex: 1,
+                child: CheckboxListTile(
+                  title: Text(
+                    'Name',
+                    style: TextStyle(
+                      color: widget.isDarkMode
+                          ? Colors.white
+                          : textColorPrimary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  value: _showName,
+                  onChanged: (value) {
+                    setState(() {
+                      _showName = value ?? false;
+                    });
+                  },
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: CheckboxListTile(
+                  title: Text(
+                    'Cross',
+                    style: TextStyle(
+                      color: widget.isDarkMode
+                          ? Colors.white
+                          : textColorPrimary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  value: _showCross,
+                  onChanged: (value) {
+                    setState(() {
+                      _showCross = value ?? false;
+                    });
+                  },
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: CheckboxListTile(
+                  title: Text(
+                    'Circle',
+                    style: TextStyle(
+                      color: widget.isDarkMode
+                          ? Colors.white
+                          : textColorPrimary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  value: _showCircle,
+                  onChanged: (value) {
+                    setState(() {
+                      _showCircle = value ?? false;
+                    });
+                  },
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: CheckboxListTile(
+                  title: Text(
+                    'Logo',
+                    style: TextStyle(
+                      color: widget.isDarkMode
+                          ? Colors.white
+                          : textColorPrimary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  value: _showLogo,
+                  onChanged: (value) {
+                    setState(() {
+                      _showLogo = value ?? false;
+                    });
+                  },
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -409,6 +524,8 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
     }
 
     print('🔄 Generating pixel map for ${surface.name} via cloud service...');
+    print('🔧 CURRENT GRID STATE: $_showGrid');
+    print('🔧 CURRENT PANEL NUMBERS STATE: $_showPanelNumbers');
 
     // Import the cloud service
     final cloudResult = await CloudPixelMapService.generateCloudPixelMap(
@@ -416,6 +533,10 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
       index,
       showGrid: _showGrid,
       showPanelNumbers: _showPanelNumbers,
+      showName: _showName,
+      showCross: _showCross,
+      showCircle: _showCircle,
+      showLogo: _showLogo,
     );
 
     if (cloudResult.isSuccess && cloudResult.imageBytes != null) {

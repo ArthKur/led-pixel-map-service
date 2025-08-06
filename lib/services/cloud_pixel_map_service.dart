@@ -9,7 +9,7 @@ import '../models/surface_model.dart';
 /// Offloads pixel map generation to Python cloud service on Render.com
 /// Removes all browser Canvas API limitations for unlimited image sizes
 class CloudPixelMapService {
-  // Cloud service URL - UPDATED TO CURRENT DEPLOYMENT
+  // Cloud service URL - DEPLOYED TO RENDER.COM WITH VISUAL OVERLAYS
   static const String _baseUrl = 'https://led-pixel-map-service-1.onrender.com';
 
   // Use cloud service (proven working with 40000×2400px generation)
@@ -21,6 +21,10 @@ class CloudPixelMapService {
     int index, {
     bool showGrid = true,
     bool showPanelNumbers = true,
+    bool showName = false,
+    bool showCross = false,
+    bool showCircle = false,
+    bool showLogo = false,
   }) async {
     try {
       // Validate surface
@@ -47,10 +51,20 @@ class CloudPixelMapService {
           'surfaceIndex': index,
           'showGrid': showGrid,
           'showPanelNumbers': showPanelNumbers,
+          'showName': showName,
+          'showCross': showCross,
+          'showCircle': showCircle,
+          'showLogo': showLogo,
+          'surfaceName': surface.name.isEmpty
+              ? 'Screen ${index + 1}'
+              : surface.name,
         },
       };
 
       debugPrint('Cloud Service: Sending request to $serviceUrl');
+      debugPrint(
+        '🔧 Grid parameter: $showGrid, Panel numbers: $showPanelNumbers',
+      );
       debugPrint('Request data: ${jsonEncode(requestData)}');
 
       // Make HTTP request to cloud service
@@ -88,6 +102,8 @@ class CloudPixelMapService {
           }
 
           final imageBytes = base64Decode(imageBase64);
+
+          debugPrint('🔧 Image bytes length: ${imageBytes.length}');
 
           // Note: The cloud service provides PNG data ready for use
 

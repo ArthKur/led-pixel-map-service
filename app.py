@@ -54,6 +54,13 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
             config = {}
         show_grid = config.get('showGrid', True)
         show_panel_numbers = config.get('showPanelNumbers', True)
+        show_name = config.get('showName', False)
+        show_cross = config.get('showCross', False)
+        show_circle = config.get('showCircle', False)
+        show_logo = config.get('showLogo', False)
+        
+        # Get surface name for overlays
+        surface_name = config.get('surfaceName', 'Screen One')
         
         # Calculate scaled dimensions
         canvas_width = int(width * canvas_scale)
@@ -72,7 +79,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         if total_pixels > 50_000_000:  # 50M+ pixels - use chunked processing
             logger.info(f"🔄 CHUNKED: Using enhanced chunked processing for {total_pixels:,} pixels")
             led_name = config.get('ledName', 'Absen')
-            return generate_chunked_pixel_map(canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid, show_panel_numbers, led_name)
+            return generate_chunked_pixel_map(canvas_width, canvas_height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid, show_panel_numbers, led_name, show_name, show_cross, show_circle, show_logo, surface_name)
         
         # Standard generation for smaller images (< 50M pixels)
         logger.info(f"📊 STANDARD: Using standard processing for {total_pixels:,} pixels")
@@ -80,7 +87,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         # For small images, use the full quality rendering with numbering
         led_name = config.get('ledName', 'Absen')
         return generate_full_quality_pixel_map(canvas_width, canvas_height, led_panel_width, led_panel_height, 
-                                             show_grid, show_panel_numbers, led_name)
+                                             show_grid, show_panel_numbers, led_name, show_name, show_cross, show_circle, show_logo, surface_name)
         
         return image
         
@@ -89,7 +96,7 @@ def generate_pixel_map_optimized(width, height, pixel_pitch, led_panel_width, le
         logger.error(traceback.format_exc())
         raise
 
-def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True, led_name='Absen'):
+def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_height, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False, surface_name='Screen One'):
     """Generate full quality pixel map with numbering and grid for smaller images"""
     try:
         # Calculate panel dimensions
@@ -127,20 +134,28 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                 
                 # Add brighter border if grid is enabled - WITHIN panel boundaries
                 if show_grid:
-                                        # Create brighter border color (40% brighter for better visibility)
+                    # Create brighter border color (40% brighter for better visibility)
                     border_color = brighten_color(panel_color, 0.4)
                     
-                    # Draw 1-pixel border WITHIN panel boundaries (last pixels of panel)
-                    # Top border - last row of panel
-                    draw.line([(x, y + led_panel_height - 1), (x + led_panel_width - 1, y + led_panel_height - 1)], 
-                             fill=border_color, width=1)
-                    # Bottom border - first row of panel  
+                    # DEBUG: Log border drawing
+                    logger.info(f"🔧 DRAWING BORDER: Panel {panel_color} -> Border {border_color}")
+                    
+                    # Draw complete border frame around each panel
+                    # Using the outer edge of each panel to create complete frames
+                    
+                    # Top border - first row of panel (pixel 0)
                     draw.line([(x, y), (x + led_panel_width - 1, y)], 
                              fill=border_color, width=1)
-                    # Left border - first column of panel
+                    
+                    # Bottom border - last row of panel (pixel 199 for 200px panel)
+                    draw.line([(x, y + led_panel_height - 1), (x + led_panel_width - 1, y + led_panel_height - 1)], 
+                             fill=border_color, width=1)
+                    
+                    # Left border - first column of panel (pixel 0)
                     draw.line([(x, y), (x, y + led_panel_height - 1)], 
                              fill=border_color, width=1)
-                    # Right border - last column of panel
+                    
+                    # Right border - last column of panel (pixel 199 for 200px panel)
                     draw.line([(x + led_panel_width - 1, y), (x + led_panel_width - 1, y + led_panel_height - 1)], 
                              fill=border_color, width=1)
         
@@ -169,6 +184,9 @@ def generate_full_quality_pixel_map(width, height, led_panel_width, led_panel_he
                         draw, panel_number, text_x, text_y, 
                         number_size, color=(255, 255, 255)  # WHITE numbers for better visibility
                     )
+
+        # Add new visual elements based on config
+        add_visual_overlays(draw, display_width, display_height, surface_name, show_name, show_cross, show_circle, show_logo)
         
         # Final memory check
         final_memory = get_memory_info()
@@ -208,7 +226,7 @@ def generate_simple_grid(draw, canvas_width, canvas_height, led_panel_width, led
         logger.error(f"Error in simple grid generation: {str(e)}")
         raise
 
-def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen'):
+def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen', show_name=False, show_cross=False, show_circle=False, show_logo=False, surface_name='Screen One'):
     """Generate ultra-large images in chunks to manage memory - ENHANCED FOR 200M PIXELS"""
     logger.info(f"🚀 ENHANCED: Generating {width}×{height}px image in optimized chunks")
     
@@ -262,6 +280,11 @@ def generate_chunked_pixel_map(width, height, pixel_pitch, led_panel_width, led_
                 logger.info(f"Progress: {progress:.1f}% ({chunks_processed}/{total_chunks} chunks) - Memory: {memory_info['rss_mb']:.1f}MB")
     
     logger.info(f"✅ Completed chunked generation: {chunks_processed} chunks processed")
+    
+    # Add visual overlays after chunked generation is complete
+    draw = ImageDraw.Draw(image)
+    add_visual_overlays(draw, width, height, surface_name, show_name, show_cross, show_circle, show_logo)
+    
     return image
 
 def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, offset_y, led_panel_width, led_panel_height, mode, show_grid=True, show_panel_numbers=True, led_name='Absen'):
@@ -304,25 +327,25 @@ def generate_enhanced_grid_for_chunk(draw, chunk_width, chunk_height, offset_x, 
                         chunk_right - 1, chunk_bottom - 1
                     ], fill=color, outline=None)
                     
-                    # Add brighter border if grid is enabled - WITHIN panel boundaries
+                    # Add brighter border if grid is enabled
                     if show_grid:
-                        border_color = brighten_color(color, 0.4)
+                        border_color = brighten_color(color, 0.3)
+                        # Draw brighter border around the panel portion in this chunk
+                        # Only draw borders that are within the chunk boundaries
                         
-                        # Draw 1-pixel border WITHIN panel boundaries (only the edges that are in this chunk)
-                        
-                        # Top border (if panel top is in this chunk) - first row of panel
+                        # Top border (if panel top is in this chunk)
                         if panel_top >= offset_y and chunk_top == panel_top - offset_y:
                             draw.line([(chunk_left, chunk_top), (chunk_right - 1, chunk_top)], fill=border_color, width=1)
                         
-                        # Bottom border (if panel bottom is in this chunk) - last row of panel
+                        # Bottom border (if panel bottom is in this chunk)
                         if panel_bottom <= offset_y + chunk_height and chunk_bottom == panel_bottom - offset_y:
                             draw.line([(chunk_left, chunk_bottom - 1), (chunk_right - 1, chunk_bottom - 1)], fill=border_color, width=1)
                         
-                        # Left border (if panel left is in this chunk) - first column of panel
+                        # Left border (if panel left is in this chunk)
                         if panel_left >= offset_x and chunk_left == panel_left - offset_x:
                             draw.line([(chunk_left, chunk_top), (chunk_left, chunk_bottom - 1)], fill=border_color, width=1)
                         
-                        # Right border (if panel right is in this chunk) - last column of panel
+                        # Right border (if panel right is in this chunk)
                         if panel_right <= offset_x + chunk_width and chunk_right == panel_right - offset_x:
                             draw.line([(chunk_right - 1, chunk_top), (chunk_right - 1, chunk_bottom - 1)], fill=border_color, width=1)
                     
@@ -588,6 +611,197 @@ def draw_vector_panel_number(draw, panel_number, x, y, size, color=(0, 0, 0)):
             # Skip other characters but leave small space
             current_x += digit_width // 4
 
+def add_visual_overlays(draw, width, height, surface_name, show_name=False, show_cross=False, show_circle=False, show_logo=False):
+    """Add visual overlays like name, cross, circle and logo to the pixel map"""
+    
+    logger.info(f"🎨 add_visual_overlays called: w={width}, h={height}, name='{surface_name}'")
+    logger.info(f"🎨 Overlay flags: name={show_name}, cross={show_cross}, circle={show_circle}, logo={show_logo}")
+    
+    center_x = width // 2
+    center_y = height // 2
+    
+    # 1. Add CENTER NAME (30% of canvas dimensions, amber color)
+    if show_name and surface_name:
+        # Calculate font size so that TEXT WIDTH is 30% of canvas width
+        target_text_width = int(width * 0.3)  # Target: 30% of canvas width
+        
+        # Amber color as requested
+        amber_color = (255, 191, 0)  # Pure amber
+        
+        try:
+            # Try to load a default system font
+            from PIL import ImageFont
+            
+            # Start with an estimated font size and adjust to fit target width
+            font_size = max(20, int(target_text_width / len(surface_name) * 1.2))  # Rough estimate
+            font_size = min(font_size, 200)  # Cap at reasonable size
+            
+            try:
+                # Try to use a bold system font
+                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
+            except:
+                try:
+                    # Fallback to Helvetica
+                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                except:
+                    try:
+                        # Another fallback
+                        font = ImageFont.truetype("arial.ttf", font_size)
+                    except:
+                        # Use default PIL font if no system fonts available
+                        font = ImageFont.load_default()
+            
+            # Adjust font size to achieve target text width
+            for attempt in range(10):  # Max 10 iterations
+                bbox = draw.textbbox((0, 0), surface_name, font=font)
+                actual_width = bbox[2] - bbox[0]
+                
+                if abs(actual_width - target_text_width) < target_text_width * 0.1:  # Within 10%
+                    break
+                    
+                # Adjust font size
+                if actual_width > target_text_width:
+                    font_size = int(font_size * 0.9)
+                else:
+                    font_size = int(font_size * 1.1)
+                
+                font_size = max(12, min(font_size, 300))  # Keep within bounds
+                
+                try:
+                    font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
+                except:
+                    try:
+                        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                    except:
+                        font = ImageFont.load_default()
+            
+            # Get final text dimensions
+            bbox = draw.textbbox((0, 0), surface_name, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            # Center the text precisely
+            text_x = center_x - text_width // 2
+            text_y = center_y - text_height // 2
+            
+            # Draw the surface name with normal font
+            draw.text((text_x, text_y), surface_name, font=font, fill=amber_color)
+            
+            logger.info(f"✅ Added center name: '{surface_name}' at {text_x},{text_y} font_size={font_size} text_width={text_width} (target: {target_text_width})")
+            
+        except Exception as e:
+            logger.error(f"❌ Font loading failed: {e}, falling back to vector text")
+            # Fallback to vector text if font loading fails
+            font_size = max(20, int(target_text_width / len(surface_name) * 1.2))
+            text_width_estimate = len(surface_name) * font_size * 0.6
+            text_x = center_x - int(text_width_estimate // 2)
+            text_y = center_y - font_size // 2
+            draw_vector_text(draw, surface_name, text_x, text_y, font_size, amber_color)
+    
+    # 2. Add CIRCLE (white line 1px thick, center to full height)
+    if show_circle:
+        circle_color = (255, 255, 255)  # White
+        # Circle from center, filling top to bottom (radius = half height)
+        radius = height // 2
+        
+        # Draw circle outline with 1px thickness
+        bbox = [center_x - radius, center_y - radius, center_x + radius, center_y + radius]
+        try:
+            # PIL doesn't have a direct circle outline, so we'll use ellipse
+            draw.ellipse(bbox, outline=circle_color, width=1)
+            logger.info(f"✅ Added circle: center=({center_x},{center_y}) radius={radius}")
+        except:
+            # Fallback: draw as arc if ellipse fails
+            draw.arc(bbox, 0, 360, fill=circle_color, width=1)
+    
+    # 3. Add CROSS LINES (diagonal from opposite corners)
+    if show_cross:
+        cross_color = (255, 255, 255)  # White
+        
+        # Draw diagonal lines from corners
+        # Top-left to bottom-right
+        draw.line([(0, 0), (width-1, height-1)], fill=cross_color, width=1)
+        # Top-right to bottom-left  
+        draw.line([(width-1, 0), (0, height-1)], fill=cross_color, width=1)
+        
+        logger.info(f"✅ Added cross lines: diagonal from corners")
+    
+    # 4. Add LOGO (placeholder for future implementation)
+    if show_logo:
+        # For now, just log that logo was requested
+        logger.info(f"✅ Logo requested (not yet implemented)")
+
+def draw_vector_text(draw, text, x, y, size, color):
+    """Draw text using vector digits and basic characters"""
+    current_x = x
+    char_width = int(size * 0.8)
+    char_spacing = max(2, size // 10)
+    
+    for char in text.upper():
+        if char.isdigit():
+            draw_vector_digit(draw, char, current_x, y, size, color)
+        elif char.isalpha():
+            # For letters, draw a simple representation using lines
+            draw_vector_letter(draw, char, current_x, y, size, color)
+        elif char == ' ':
+            # Space character
+            current_x += char_width // 2
+            continue
+        else:
+            # Skip unknown characters
+            pass
+            
+        current_x += char_width + char_spacing
+
+def draw_vector_letter(draw, letter, x, y, size, color):
+    """Draw basic vector letters using simple line patterns"""
+    line_width = max(1, size // 20)
+    
+    # Simple letter patterns using lines
+    if letter == 'A':
+        # Draw letter A
+        draw.line([(x, y + size), (x + size//2, y), (x + size, y + size)], fill=color, width=line_width)
+        draw.line([(x + size//4, y + size//2), (x + 3*size//4, y + size//2)], fill=color, width=line_width)
+    elif letter == 'B':
+        # Draw letter B - simplified
+        draw.line([(x, y), (x, y + size)], fill=color, width=line_width)
+        draw.line([(x, y), (x + size//2, y)], fill=color, width=line_width)
+        draw.line([(x, y + size//2), (x + size//2, y + size//2)], fill=color, width=line_width)
+        draw.line([(x, y + size), (x + size//2, y + size)], fill=color, width=line_width)
+    elif letter == 'C':
+        # Draw letter C
+        draw.line([(x + size, y), (x, y), (x, y + size), (x + size, y + size)], fill=color, width=line_width)
+    elif letter == 'E':
+        # Draw letter E
+        draw.line([(x, y), (x, y + size)], fill=color, width=line_width)
+        draw.line([(x, y), (x + size, y)], fill=color, width=line_width)
+        draw.line([(x, y + size//2), (x + size//2, y + size//2)], fill=color, width=line_width)
+        draw.line([(x, y + size), (x + size, y + size)], fill=color, width=line_width)
+    elif letter == 'N':
+        # Draw letter N
+        draw.line([(x, y), (x, y + size)], fill=color, width=line_width)
+        draw.line([(x, y), (x + size, y + size)], fill=color, width=line_width)
+        draw.line([(x + size, y), (x + size, y + size)], fill=color, width=line_width)
+    elif letter == 'O':
+        # Draw letter O as rectangle outline
+        draw.rectangle([x, y, x + size, y + size], outline=color, width=line_width)
+    elif letter == 'R':
+        # Draw letter R
+        draw.line([(x, y), (x, y + size)], fill=color, width=line_width)
+        draw.line([(x, y), (x + size, y)], fill=color, width=line_width)
+        draw.line([(x, y + size//2), (x + size, y + size//2)], fill=color, width=line_width)
+        draw.line([(x + size//2, y + size//2), (x + size, y + size)], fill=color, width=line_width)
+    elif letter == 'S':
+        # Draw letter S - simplified
+        draw.line([(x + size, y), (x, y), (x, y + size//2), (x + size, y + size//2), (x + size, y + size), (x, y + size)], fill=color, width=line_width)
+    elif letter == 'T':
+        # Draw letter T
+        draw.line([(x, y), (x + size, y)], fill=color, width=line_width)
+        draw.line([(x + size//2, y), (x + size//2, y + size)], fill=color, width=line_width)
+    else:
+        # For other letters, draw a simple rectangle as placeholder
+        draw.rectangle([x, y, x + size//2, y + size], outline=color, width=line_width)
+
 def generate_color(panel_x, panel_y, led_name='Absen'):
     """Generate colors based on LED type and panel position"""
     
@@ -639,9 +853,9 @@ def brighten_color(color, factor=0.3):
 @app.route('/')
 def health_check():
     return jsonify({
-        'service': 'LED Pixel Map Cloud Renderer - ENHANCED GRID v2.0',
+        'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
         'status': 'healthy',
-        'version': '15.0 - PROPER BORDER FIX: 1px borders within panel boundaries, no white lines',
+        'version': '15.0 - RESTORED BORDER FIX + Visual Overlays: 1px borders within panel boundaries, no white lines',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
@@ -669,30 +883,31 @@ def generate_pixel_map():
                 'error': 'No data provided'
             }), 400
         
-        # Extract dimensions - Support both old nested format and new simple format
+        # Extract dimensions
         surface = data.get('surface', {})
         config = data.get('config', {})
+        panels_width = surface.get('panelsWidth', 10)
+        panels_height = surface.get('fullPanelsHeight', 5)
+        panel_pixel_width = surface.get('panelPixelWidth', 200)
+        panel_pixel_height = surface.get('panelPixelHeight', 200)
+        led_name = surface.get('ledName', 'Unknown LED')
         
-        # NEW SIMPLE FORMAT (used by test scripts)
-        if 'width' in data and 'height' in data:
-            panels_width = data.get('width', 10)
-            panels_height = data.get('height', 5)
-            panel_pixel_width = data.get('ledPanelWidth', 200)
-            panel_pixel_height = data.get('ledPanelHeight', 200)
-            led_name = data.get('ledName', 'Unknown LED')
-            show_grid = data.get('showGrid', True)
-            show_panel_numbers = data.get('showPanelNumbers', True)
-            surface_index = 0
-        # OLD NESTED FORMAT (used by Flutter app)
-        else:
-            panels_width = surface.get('panelsWidth', 10)
-            panels_height = surface.get('fullPanelsHeight', 5)
-            panel_pixel_width = surface.get('panelPixelWidth', 200)
-            panel_pixel_height = surface.get('panelPixelHeight', 200)
-            led_name = surface.get('ledName', 'Unknown LED')
-            show_grid = config.get('showGrid', True)
-            show_panel_numbers = config.get('showPanelNumbers', True)
-            surface_index = config.get('surfaceIndex', 0)
+        show_grid = config.get('showGrid', True)
+        show_panel_numbers = config.get('showPanelNumbers', True)
+        show_name = config.get('showName', False)
+        show_cross = config.get('showCross', False)
+        show_circle = config.get('showCircle', False)
+        show_logo = config.get('showLogo', False)
+        surface_index = config.get('surfaceIndex', 0)
+        
+        # Get surface name for center text overlay (default to "Screen One")
+        surface_name = config.get('surfaceName', 'Screen One')
+        
+        # Add debug logging for visual overlays and grid controls
+        logger.info(f"🎨 Visual Overlays: Name={show_name}, Cross={show_cross}, Circle={show_circle}, Logo={show_logo}")
+        logger.info(f"🎯 Surface Name: '{surface_name}'")
+        logger.info(f"🔧 Grid Controls: Grid={show_grid}, Panel Numbers={show_panel_numbers}")
+        logger.info(f"📛 Surface Name: '{led_name}'")
         
         # Calculate total dimensions
         total_width = panels_width * panel_pixel_width
@@ -722,7 +937,12 @@ def generate_pixel_map():
             config_dict = {
                 'showGrid': show_grid,
                 'showPanelNumbers': show_panel_numbers,
-                'ledName': led_name
+                'showName': show_name,
+                'showCross': show_cross,
+                'showCircle': show_circle,
+                'showLogo': show_logo,
+                'ledName': led_name,
+                'surfaceName': surface_name
             }
             
             image = generate_pixel_map_optimized(
@@ -820,7 +1040,7 @@ def generate_pixel_map():
         # Use high-quality drawing context for precise rendering
         draw = ImageDraw.Draw(image, 'RGB')  # Ensure RGB consistency
         
-        # ENHANCED GRID FIX: Draw panels SMALLER to leave space for borders
+        # Fill panels first (without borders)
         for row in range(panels_height):
             for col in range(panels_width):
                 x = col * panel_display_width
@@ -829,34 +1049,37 @@ def generate_pixel_map():
                 # Generate color for this panel
                 panel_color = generate_color(col, row)
                 
-                # Draw panel rectangle filled with color (full panel size)
+                # Draw panel rectangle filled with color (no outline)
                 draw.rectangle([x, y, x + panel_display_width - 1, y + panel_display_height - 1], 
                              fill=panel_color, outline=None)
-        
-        # Add grid borders if enabled - draw WITHIN panel boundaries
-        if config.get('showGrid', False):
-            for row in range(panels_height):
-                for col in range(panels_width):
-                    x = col * panel_display_width
-                    y = row * panel_display_height
-                    
-                    # Get panel color to create brighter border
-                    panel_color = generate_color(col, row)
+                
+                # Add brighter borders if grid is enabled - WITHIN panel boundaries
+                if config and config.get('showGrid', False):
+                    # Create brighter border color (40% brighter for better visibility)
                     border_color = brighten_color(panel_color, 0.4)
                     
-                    # Draw 1-pixel border WITHIN panel boundaries
-                    # Top border - first row of panel
+                    # Draw complete 1-pixel border around each panel using the last pixels
+                    # This creates a full border frame within each panel's boundaries
+                    
+                    # Top border - first row of panel (pixel 0)
                     draw.line([(x, y), (x + panel_display_width - 1, y)], 
                              fill=border_color, width=1)
-                    # Bottom border - last row of panel  
+                    
+                    # Bottom border - last row of panel (pixel 199 for 200px panel)
                     draw.line([(x, y + panel_display_height - 1), (x + panel_display_width - 1, y + panel_display_height - 1)], 
                              fill=border_color, width=1)
-                    # Left border - first column of panel
+                    
+                    # Left border - first column of panel (pixel 0)
                     draw.line([(x, y), (x, y + panel_display_height - 1)], 
                              fill=border_color, width=1)
-                    # Right border - last column of panel
+                    
+                    # Right border - last column of panel (pixel 199 for 200px panel)
                     draw.line([(x + panel_display_width - 1, y), (x + panel_display_width - 1, y + panel_display_height - 1)], 
                              fill=border_color, width=1)
+        
+        # Grid borders are now handled by generate_full_quality_pixel_map 
+        # Each panel draws its own brighter border using its panel color
+        # No need for separate grid lines - borders are part of each panel
         
         # Draw panel numbers with VECTOR-BASED numbering (pixel-perfect quality)
         for row in range(panels_height):

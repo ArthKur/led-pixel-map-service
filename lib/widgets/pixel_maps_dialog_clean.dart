@@ -47,6 +47,10 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
   );
   bool _showPanelNumbers = true;
   bool _showGrid = true;
+  bool _showName = false;
+  bool _showCross = false;
+  bool _showCircle = false;
+  bool _showLogo = false;
 
   @override
   void dispose() {
@@ -276,16 +280,19 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                 ],
               ),
               const SizedBox(height: 15),
+              // Checkboxes in a single row
               Row(
                 children: [
                   Expanded(
+                    flex: 2,
                     child: CheckboxListTile(
                       title: Text(
-                        'Show Panel Numbers',
+                        'Panel Numbers',
                         style: TextStyle(
                           color: widget.isDarkMode
                               ? Colors.white
                               : Colors.black,
+                          fontSize: 14,
                         ),
                       ),
                       value: _showPanelNumbers,
@@ -294,16 +301,19 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                           _showPanelNumbers = value ?? true;
                         });
                       },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
                   ),
                   Expanded(
+                    flex: 1,
                     child: CheckboxListTile(
                       title: Text(
-                        'Show Grid',
+                        'Grid',
                         style: TextStyle(
                           color: widget.isDarkMode
                               ? Colors.white
                               : Colors.black,
+                          fontSize: 14,
                         ),
                       ),
                       value: _showGrid,
@@ -312,6 +322,91 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
                           _showGrid = value ?? true;
                         });
                       },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: CheckboxListTile(
+                      title: Text(
+                        'Name',
+                        style: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                          fontSize: 14,
+                        ),
+                      ),
+                      value: _showName,
+                      onChanged: (value) {
+                        setState(() {
+                          _showName = value ?? false;
+                        });
+                      },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: CheckboxListTile(
+                      title: Text(
+                        'Cross',
+                        style: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                          fontSize: 14,
+                        ),
+                      ),
+                      value: _showCross,
+                      onChanged: (value) {
+                        setState(() {
+                          _showCross = value ?? false;
+                        });
+                      },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: CheckboxListTile(
+                      title: Text(
+                        'Circle',
+                        style: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                          fontSize: 14,
+                        ),
+                      ),
+                      value: _showCircle,
+                      onChanged: (value) {
+                        setState(() {
+                          _showCircle = value ?? false;
+                        });
+                      },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: CheckboxListTile(
+                      title: Text(
+                        'Logo',
+                        style: TextStyle(
+                          color: widget.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                          fontSize: 14,
+                        ),
+                      ),
+                      value: _showLogo,
+                      onChanged: (value) {
+                        setState(() {
+                          _showLogo = value ?? false;
+                        });
+                      },
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
                   ),
                 ],
@@ -529,6 +624,10 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
             imageHeight: height,
             showPanelNumbers: _showPanelNumbers,
             showGrid: _showGrid,
+            showName: _showName,
+            showCross: _showCross,
+            showCircle: _showCircle,
+            showLogo: _showLogo,
           );
 
       // Convert bytes to ui.Image
@@ -542,6 +641,10 @@ class _PixelMapsDialogState extends State<PixelMapsDialog> {
         index,
         showGrid: _showGrid,
         showPanelNumbers: _showPanelNumbers,
+        showName: _showName,
+        showCross: _showCross,
+        showCircle: _showCircle,
+        showLogo: _showLogo,
       );
 
       // Convert bytes to ui.Image
