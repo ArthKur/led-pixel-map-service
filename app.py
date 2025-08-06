@@ -628,28 +628,40 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
         # Amber color as requested
         amber_color = (255, 191, 0)  # Pure amber
         
+        logger.info(f"🎯 Surface name sizing: canvas={width}x{height}, target_width={target_text_width}")
+        
         try:
             # Try to load a default system font
             from PIL import ImageFont
             
-            # Start with an estimated font size and adjust to fit target width
-            font_size = max(20, int(target_text_width / len(surface_name) * 1.2))  # Rough estimate
-            font_size = min(font_size, 200)  # Cap at reasonable size
+            # Start with a larger estimated font size and adjust to fit target width
+            font_size = max(40, int(target_text_width / len(surface_name) * 1.8))  # Increased multiplier
+            font_size = min(font_size, 300)  # Cap at reasonable size
+            
+            logger.info(f"🔤 Initial font size estimate: {font_size}px for '{surface_name}'")
             
             try:
-                # Try to use a bold system font
-                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
+                # Try Linux system fonts first (for cloud deployment)
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
             except:
                 try:
-                    # Fallback to Helvetica
-                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                    # Try another Linux font
+                    font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", font_size)
                 except:
                     try:
-                        # Another fallback
-                        font = ImageFont.truetype("arial.ttf", font_size)
+                        # Try macOS fonts (for local development)
+                        font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
                     except:
-                        # Use default PIL font if no system fonts available
-                        font = ImageFont.load_default()
+                        try:
+                            # Another macOS fallback
+                            font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                        except:
+                            try:
+                                # Generic fallback
+                                font = ImageFont.truetype("arial.ttf", font_size)
+                            except:
+                                # Use default PIL font if no system fonts available
+                                font = ImageFont.load_default()
             
             # Adjust font size to achieve target text width
             for attempt in range(10):  # Max 10 iterations
@@ -668,12 +680,23 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
                 font_size = max(12, min(font_size, 300))  # Keep within bounds
                 
                 try:
-                    font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
+                    # Try Linux fonts first
+                    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
                 except:
                     try:
-                        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                        # Try another Linux font
+                        font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", font_size)
                     except:
-                        font = ImageFont.load_default()
+                        try:
+                            # Try macOS fonts (for local development)
+                            font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
+                        except:
+                            try:
+                                # Another macOS fallback
+                                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                            except:
+                                # Use default font
+                                font = ImageFont.load_default()
             
             # Get final text dimensions
             bbox = draw.textbbox((0, 0), surface_name, font=font)
@@ -692,10 +715,12 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
         except Exception as e:
             logger.error(f"❌ Font loading failed: {e}, falling back to vector text")
             # Fallback to vector text if font loading fails
-            font_size = max(20, int(target_text_width / len(surface_name) * 1.2))
-            text_width_estimate = len(surface_name) * font_size * 0.6
+            # Make font size much larger for visibility
+            font_size = max(60, int(target_text_width / len(surface_name) * 1.5))  # Increased from 20 to 60 minimum
+            text_width_estimate = len(surface_name) * font_size * 0.8  # Increased width factor
             text_x = center_x - int(text_width_estimate // 2)
             text_y = center_y - font_size // 2
+            logger.info(f"🔤 Vector text fallback: size={font_size}, position=({text_x},{text_y})")
             draw_vector_text(draw, surface_name, text_x, text_y, font_size, amber_color)
     
     # 2. Add CIRCLE (white line 1px thick, center to full height)
