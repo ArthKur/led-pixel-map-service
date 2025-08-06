@@ -41,7 +41,7 @@ class PixelMapService {
           surface,
           index,
           showGrid: showGrid,
-          showPanelNumbers: showPanelNumbers, showName: showName, showCross: showCross, showCircle: showCircle, showLogo: showLogo,
+          showPanelNumbers: showPanelNumbers,
         );
 
         if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
@@ -68,7 +68,7 @@ class PixelMapService {
           surface,
           index,
           showGrid: showGrid,
-          showPanelNumbers: showPanelNumbers, showName: showName, showCross: showCross, showCircle: showCircle, showLogo: showLogo,
+          showPanelNumbers: showPanelNumbers,
         );
 
         if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
@@ -115,7 +115,7 @@ class PixelMapService {
           surface,
           index,
           showGrid: showGrid,
-          showPanelNumbers: showPanelNumbers, showName: showName, showCross: showCross, showCircle: showCircle, showLogo: showLogo,
+          showPanelNumbers: showPanelNumbers,
         );
 
         if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
@@ -144,7 +144,7 @@ class PixelMapService {
           surface,
           index,
           showGrid: showGrid,
-          showPanelNumbers: showPanelNumbers, showName: showName, showCross: showCross, showCircle: showCircle, showLogo: showLogo,
+          showPanelNumbers: showPanelNumbers,
         );
 
         if (cloudResult.isSuccess && cloudResult.imageBytes != null) {
@@ -677,7 +677,7 @@ class PixelMapService {
       pixelsPerPanelWidth,
       fullPanelPixelHeight,
       halfPanelPixelHeight,
-      showPanelNumbers: showPanelNumbers, showName: showName, showCross: showCross, showCircle: showCircle, showLogo: showLogo,
+      showPanelNumbers: showPanelNumbers,
       showGrid: showGrid,
     );
 
