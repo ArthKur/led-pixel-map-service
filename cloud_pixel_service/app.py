@@ -840,10 +840,11 @@ def brighten_color(color, factor=0.3):
 
 @app.route('/')
 def health_check():
+    # FORCE REBUILD: v17.0 - Surface name parameter fixes MUST be deployed
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
         'status': 'healthy',
-        'version': '16.2 - SURFACE NAME FIXED: Added missing surface_name parameter to function signatures',
+        'version': '17.0 - FORCE REBUILD: Fixed missing surface_name parameters + deployment verification',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
