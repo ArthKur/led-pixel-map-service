@@ -620,25 +620,44 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
     center_x = width // 2
     center_y = height // 2
     
-    # 1. Add CENTER NAME (30% of canvas dimensions, amber color)
+    # 1. Add CENTER NAME (adaptive sizing for ALL canvas sizes, amber color)
     if show_name and surface_name:
-        # Calculate font size so that TEXT WIDTH is 30% of canvas width
-        target_text_width = int(width * 0.3)  # Target: 30% of canvas width
+        # Adaptive target width: use larger percentage for smaller canvases
+        min_dimension = min(width, height)
+        
+        # Dynamic scaling based on canvas size
+        if min_dimension < 500:
+            # Small canvases: use 50% of width or 60% of height, whichever is smaller
+            target_text_width = int(min(width * 0.5, height * 0.6))
+        elif min_dimension < 1000:
+            # Medium canvases: use 40% of width
+            target_text_width = int(width * 0.4)
+        else:
+            # Large canvases: use 30% of width  
+            target_text_width = int(width * 0.3)
+        
+        # Ensure minimum readable size regardless of canvas
+        target_text_width = max(target_text_width, 80)  # Minimum 80px text width
         
         # Amber color as requested
         amber_color = (255, 191, 0)  # Pure amber
         
-        logger.info(f"🎯 Surface name sizing: canvas={width}x{height}, target_width={target_text_width}")
+        logger.info(f"🎯 Surface name sizing: canvas={width}x{height}, min_dim={min_dimension}, target_width={target_text_width}")
         
         try:
             # Try to load a default system font
             from PIL import ImageFont
             
-            # Start with a larger estimated font size and adjust to fit target width
-            font_size = max(40, int(target_text_width / len(surface_name) * 1.8))  # Increased multiplier
+            # Enhanced font size calculation for better visibility on all sizes
+            estimated_chars = len(surface_name)
+            if estimated_chars == 0:
+                estimated_chars = 1
+                
+            # Start with a proportional font size, with higher minimum
+            font_size = max(16, int(target_text_width / estimated_chars * 1.5))  # Increased minimum from 40 to 16
             font_size = min(font_size, 300)  # Cap at reasonable size
             
-            logger.info(f"🔤 Initial font size estimate: {font_size}px for '{surface_name}'")
+            logger.info(f"🔤 Initial font size estimate: {font_size}px for '{surface_name}' ({estimated_chars} chars)")
             
             try:
                 # Try Linux system fonts first (for cloud deployment)
@@ -677,7 +696,7 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
                 else:
                     font_size = int(font_size * 1.1)
                 
-                font_size = max(12, min(font_size, 300))  # Keep within bounds
+                font_size = max(8, min(font_size, 300))  # Much lower minimum (8px instead of 12px)
                 
                 try:
                     # Try Linux fonts first
@@ -715,41 +734,56 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
         except Exception as e:
             logger.error(f"❌ Font loading failed: {e}, falling back to vector text")
             # Fallback to vector text if font loading fails
-            # Make font size much larger for visibility
-            font_size = max(60, int(target_text_width / len(surface_name) * 1.5))  # Increased from 20 to 60 minimum
-            text_width_estimate = len(surface_name) * font_size * 0.8  # Increased width factor
+            # Ensure vector text is visible on ALL canvas sizes
+            font_size = max(12, int(target_text_width / len(surface_name) * 1.2))  # Lower minimum for small canvases
+            text_width_estimate = len(surface_name) * font_size * 0.8
             text_x = center_x - int(text_width_estimate // 2)
             text_y = center_y - font_size // 2
             logger.info(f"🔤 Vector text fallback: size={font_size}, position=({text_x},{text_y})")
             draw_vector_text(draw, surface_name, text_x, text_y, font_size, amber_color)
     
-    # 2. Add CIRCLE (white line 1px thick, center to full height)
+    # 2. Add CIRCLE (white line, adaptive to canvas orientation)
     if show_circle:
         circle_color = (255, 255, 255)  # White
-        # Circle from center, filling top to bottom (radius = half height)
-        radius = height // 2
         
-        # Draw circle outline with 1px thickness
+        # Adaptive circle sizing: use smallest dimension to fit in any orientation
+        min_dimension = min(width, height)
+        radius = min_dimension // 2 - 10  # Leave 10px margin from edges
+        radius = max(radius, 20)  # Minimum 20px radius
+        
+        # Calculate line thickness based on canvas size
+        line_width = max(1, min_dimension // 500)
+        
+        logger.info(f"🎯 Circle: canvas={width}x{height}, radius={radius}, line_width={line_width}")
+        
+        # Draw circle outline centered in canvas
         bbox = [center_x - radius, center_y - radius, center_x + radius, center_y + radius]
         try:
-            # PIL doesn't have a direct circle outline, so we'll use ellipse
-            draw.ellipse(bbox, outline=circle_color, width=1)
-            logger.info(f"✅ Added circle: center=({center_x},{center_y}) radius={radius}")
+            # PIL ellipse with adaptive line width
+            draw.ellipse(bbox, outline=circle_color, width=line_width)
+            logger.info(f"✅ Added circle: center=({center_x},{center_y}) radius={radius} width={line_width}px")
         except:
             # Fallback: draw as arc if ellipse fails
-            draw.arc(bbox, 0, 360, fill=circle_color, width=1)
+            draw.arc(bbox, 0, 360, fill=circle_color, width=line_width)
+            logger.info(f"✅ Added circle (arc fallback): center=({center_x},{center_y}) radius={radius}")
     
-    # 3. Add CROSS LINES (diagonal from opposite corners)
+    # 3. Add CROSS LINES (diagonal from opposite corners, works on ALL orientations)
     if show_cross:
         cross_color = (255, 255, 255)  # White
         
-        # Draw diagonal lines from corners
-        # Top-left to bottom-right
-        draw.line([(0, 0), (width-1, height-1)], fill=cross_color, width=1)
-        # Top-right to bottom-left  
-        draw.line([(width-1, 0), (0, height-1)], fill=cross_color, width=1)
+        # Calculate line thickness based on canvas size for better visibility
+        min_dimension = min(width, height)
+        line_width = max(1, min_dimension // 500)  # Thicker lines for larger canvases
         
-        logger.info(f"✅ Added cross lines: diagonal from corners")
+        logger.info(f"🎯 Cross lines: canvas={width}x{height}, line_width={line_width}")
+        
+        # Draw diagonal lines from corners (works for portrait, landscape, square)
+        # Top-left to bottom-right
+        draw.line([(0, 0), (width-1, height-1)], fill=cross_color, width=line_width)
+        # Top-right to bottom-left  
+        draw.line([(width-1, 0), (0, height-1)], fill=cross_color, width=line_width)
+        
+        logger.info(f"✅ Added cross lines: diagonal from corners, width={line_width}px")
     
     # 4. Add LOGO (placeholder for future implementation)
     if show_logo:
