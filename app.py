@@ -622,32 +622,32 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
     
     # 1. Add CENTER NAME (30% of canvas dimensions, amber color)
     if show_name and surface_name:
-        # Calculate font size so that TEXT WIDTH is 30% of canvas width
-        target_text_width = int(width * 0.3)  # Target: 30% of canvas width
-        
         # Amber color as requested
         amber_color = (255, 191, 0)  # Pure amber
-        
-        logger.info(f"🎯 Surface name sizing: canvas={width}x{height}, target_width={target_text_width}")
         
         try:
             # Try to load a default system font
             from PIL import ImageFont
             
-            # ADAPTIVE MINIMUM FONT SIZE based on canvas size for small surface fix
-            # Small surfaces need smaller minimum fonts to make names visible
-            if width <= 500:  # Small surfaces (like 2x2 = 400px)
-                min_font_size = max(8, int(width * 0.02))  # 2% of width, minimum 8px
-                max_font_size = int(width * 0.15)  # 15% of width for small surfaces
-                logger.info(f"🔧 SMALL SURFACE: Using adaptive sizing min={min_font_size}px max={max_font_size}px")
-            elif width <= 1000:  # Medium surfaces
-                min_font_size = max(16, int(width * 0.025))  # 2.5% of width
-                max_font_size = int(width * 0.2)   # 20% of width
-                logger.info(f"🔧 MEDIUM SURFACE: Using adaptive sizing min={min_font_size}px max={max_font_size}px")
-            else:  # Large surfaces (original logic)
-                min_font_size = max(24, int(width * 0.03))   # 3% of width
-                max_font_size = min(300, int(width * 0.25))  # 25% of width, cap at 300px
-                logger.info(f"🔧 LARGE SURFACE: Using adaptive sizing min={min_font_size}px max={max_font_size}px")
+            # ULTRA-AGGRESSIVE FONT SIZING FOR SMALL SURFACE VISIBILITY (V20.0)
+            # User reports surfaces under 10m wide (~4000px) still don't show names
+            if width <= 2000:  # Very small to medium surfaces (up to ~5m wide)
+                min_font_size = max(20, int(width * 0.05))  # 5% of width, minimum 20px (was 2%)
+                max_font_size = int(width * 0.3)   # 30% of width (was 15%)
+                target_text_width = int(width * 0.6)  # Use 60% of width for text (was 30%)
+                logger.info(f"🔧 ULTRA-SMALL SURFACE: Aggressive sizing min={min_font_size}px max={max_font_size}px target={target_text_width}px")
+            elif width <= 4000:  # Medium surfaces (5-10m wide) - the problematic range
+                min_font_size = max(32, int(width * 0.04))  # 4% of width, minimum 32px (was 2.5%)
+                max_font_size = int(width * 0.25)  # 25% of width (was 20%)
+                target_text_width = int(width * 0.5)  # Use 50% of width for text (was 30%)
+                logger.info(f"🔧 MEDIUM SURFACE: Aggressive sizing min={min_font_size}px max={max_font_size}px target={target_text_width}px")
+            else:  # Large surfaces (over 10m wide) - these work fine
+                min_font_size = max(40, int(width * 0.03))   # 3% of width, minimum 40px
+                max_font_size = min(400, int(width * 0.2))   # 20% of width, cap at 400px
+                target_text_width = int(width * 0.3)   # Use 30% of width (original)
+                logger.info(f"🔧 LARGE SURFACE: Standard sizing min={min_font_size}px max={max_font_size}px target={target_text_width}px")
+        
+            logger.info(f"🎯 V20.0 Ultra-aggressive sizing: canvas={width}x{height}, target_width={target_text_width}")
             
             # Start with estimated font size using adaptive bounds
             estimated_chars_per_pixel = 1.8  # Character density estimate
@@ -756,8 +756,8 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
             margin = 5
             text_x = max(margin, min(text_x, width - int(text_width_estimate) - margin))
             text_y = max(margin, min(text_y, height - fallback_font_size - margin))
-            logger.info(f"🔤 Vector text fallback: size={font_size}, position=({text_x},{text_y})")
-            draw_vector_text(draw, surface_name, text_x, text_y, font_size, amber_color)
+            logger.info(f"🔤 Vector text fallback: size={fallback_font_size}, position=({text_x},{text_y})")
+            draw_vector_text(draw, surface_name, text_x, text_y, fallback_font_size, amber_color)
     
     # 2. Add CIRCLE (white line 1px thick, center to full height)
     if show_circle:
@@ -916,7 +916,7 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
         'status': 'healthy',
-        'version': '19.0 - SMALL SURFACE NAME FIX + Adaptive Font Sizing + Enhanced Visual Overlays',
+        'version': '20.0 - ULTRA-AGGRESSIVE FONT SIZING + Small Surface Name Fix + Adaptive Font Sizing + Enhanced Visual Overlays',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
