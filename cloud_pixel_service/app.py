@@ -625,48 +625,66 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
             font_size = min(font_size, 200)  # Cap at reasonable size
             
             try:
-                # Try to use a bold system font
-                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
+                # Linux-compatible font paths for cloud deployment
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
             except:
                 try:
-                    # Fallback to Helvetica
-                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                    # Alternative Linux font
+                    font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", font_size)
                 except:
                     try:
-                        # Another fallback
-                        font = ImageFont.truetype("arial.ttf", font_size)
+                        # Basic Linux font
+                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
                     except:
-                        # Use default PIL font if no system fonts available
-                        font = ImageFont.load_default()
+                        try:
+                            # Fallback to default font with fixed size
+                            font = ImageFont.load_default()
+                            # For default font, use simpler approach
+                            text_width = len(surface_name) * 6  # Rough estimate for default font
+                            text_height = 11  # Default font height
+                            text_x = center_x - text_width // 2
+                            text_y = center_y - text_height // 2
+                            draw.text((text_x, text_y), surface_name, font=font, fill=amber_color)
+                            logger.info(f"✅ Added center name with default font: '{surface_name}' at {text_x},{text_y}")
+                            return  # Exit early - don't continue with complex font sizing
+                        except Exception as fallback_error:
+                            logger.error(f"❌ All font methods failed: {fallback_error}")
+                            # Last resort: use vector text
+                            font_size_vector = max(12, int(width * 0.05))
+                            text_x = center_x - len(surface_name) * font_size_vector // 4
+                            text_y = center_y - font_size_vector // 2
+                            draw_vector_text(draw, surface_name, text_x, text_y, font_size_vector, amber_color)
+                            logger.info(f"✅ Added center name with vector text: '{surface_name}'")
+                            return
             
-            # Adjust font size to achieve target text width
-            for attempt in range(10):  # Max 10 iterations
+            # Simplified font sizing - avoid complex loops that can hang
+            try:
                 bbox = draw.textbbox((0, 0), surface_name, font=font)
                 actual_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
                 
-                if abs(actual_width - target_text_width) < target_text_width * 0.1:  # Within 10%
-                    break
-                    
-                # Adjust font size
+                # If text is too wide, scale down font
                 if actual_width > target_text_width:
-                    font_size = int(font_size * 0.9)
-                else:
-                    font_size = int(font_size * 1.1)
-                
-                font_size = max(12, min(font_size, 300))  # Keep within bounds
-                
-                try:
-                    font = ImageFont.truetype("/System/Library/Fonts/Arial.ttc", font_size)
-                except:
+                    scale_factor = target_text_width / actual_width
+                    font_size = int(font_size * scale_factor)
+                    font_size = max(8, font_size)  # Minimum readable size
+                    
+                    # Reload font with new size
                     try:
-                        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
                     except:
                         font = ImageFont.load_default()
-            
-            # Get final text dimensions
-            bbox = draw.textbbox((0, 0), surface_name, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
+                
+                # Get final text dimensions
+                bbox = draw.textbbox((0, 0), surface_name, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                
+            except Exception as bbox_error:
+                logger.error(f"❌ textbbox failed: {bbox_error}, using estimates")
+                # Use estimates if textbbox fails
+                text_width = len(surface_name) * font_size * 0.6
+                text_height = font_size
             
             # Center the text precisely
             text_x = center_x - text_width // 2
@@ -844,7 +862,7 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
         'status': 'healthy',
-        'version': '17.0 - FORCE REBUILD: Fixed missing surface_name parameters + deployment verification',
+        'version': '17.1 - LINUX FONTS FIX: Use Linux-compatible font paths, simplified font sizing, no hanging loops',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
