@@ -634,11 +634,27 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
             # Try to load a default system font
             from PIL import ImageFont
             
-            # Start with a larger estimated font size and adjust to fit target width
-            font_size = max(40, int(target_text_width / len(surface_name) * 1.8))  # Increased multiplier
-            font_size = min(font_size, 300)  # Cap at reasonable size
+            # ADAPTIVE MINIMUM FONT SIZE based on canvas size for small surface fix
+            # Small surfaces need smaller minimum fonts to make names visible
+            if width <= 500:  # Small surfaces (like 2x2 = 400px)
+                min_font_size = max(8, int(width * 0.02))  # 2% of width, minimum 8px
+                max_font_size = int(width * 0.15)  # 15% of width for small surfaces
+                logger.info(f"🔧 SMALL SURFACE: Using adaptive sizing min={min_font_size}px max={max_font_size}px")
+            elif width <= 1000:  # Medium surfaces
+                min_font_size = max(16, int(width * 0.025))  # 2.5% of width
+                max_font_size = int(width * 0.2)   # 20% of width
+                logger.info(f"🔧 MEDIUM SURFACE: Using adaptive sizing min={min_font_size}px max={max_font_size}px")
+            else:  # Large surfaces (original logic)
+                min_font_size = max(24, int(width * 0.03))   # 3% of width
+                max_font_size = min(300, int(width * 0.25))  # 25% of width, cap at 300px
+                logger.info(f"🔧 LARGE SURFACE: Using adaptive sizing min={min_font_size}px max={max_font_size}px")
             
-            logger.info(f"🔤 Initial font size estimate: {font_size}px for '{surface_name}'")
+            # Start with estimated font size using adaptive bounds
+            estimated_chars_per_pixel = 1.8  # Character density estimate
+            font_size = int(target_text_width / len(surface_name) * estimated_chars_per_pixel)
+            font_size = max(min_font_size, min(font_size, max_font_size))
+            
+            logger.info(f"🔤 Adaptive font size: {font_size}px for '{surface_name}' (bounds: {min_font_size}-{max_font_size})")
             
             try:
                 # Try Linux system fonts first (for cloud deployment)
@@ -663,21 +679,28 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
                                 # Use default PIL font if no system fonts available
                                 font = ImageFont.load_default()
             
-            # Adjust font size to achieve target text width
-            for attempt in range(10):  # Max 10 iterations
+            # Adjust font size to achieve target text width with adaptive bounds
+            for attempt in range(15):  # More iterations for precision on small surfaces
                 bbox = draw.textbbox((0, 0), surface_name, font=font)
                 actual_width = bbox[2] - bbox[0]
+                actual_height = bbox[3] - bbox[1]
                 
-                if abs(actual_width - target_text_width) < target_text_width * 0.1:  # Within 10%
+                # Check if we're close enough to target
+                if abs(actual_width - target_text_width) < target_text_width * 0.05:  # Within 5% for better precision
                     break
-                    
-                # Adjust font size
-                if actual_width > target_text_width:
-                    font_size = int(font_size * 0.9)
-                else:
-                    font_size = int(font_size * 1.1)
                 
-                font_size = max(12, min(font_size, 300))  # Keep within bounds
+                # Also ensure text doesn't exceed canvas bounds
+                if actual_width > width * 0.9 or actual_height > height * 0.4:
+                    font_size = int(font_size * 0.8)  # Reduce more aggressively if overflowing
+                else:
+                    # Adjust font size more gradually
+                    if actual_width > target_text_width:
+                        font_size = int(font_size * 0.95)
+                    else:
+                        font_size = int(font_size * 1.05)
+                
+                # Use adaptive bounds instead of fixed bounds
+                font_size = max(min_font_size, min(font_size, max_font_size))
                 
                 try:
                     # Try Linux fonts first
@@ -703,23 +726,36 @@ def add_visual_overlays(draw, width, height, surface_name, show_name=False, show
             text_width = bbox[2] - bbox[0]
             text_height = bbox[3] - bbox[1]
             
-            # Center the text precisely
+            # Center the text precisely with bounds checking for small surfaces
             text_x = center_x - text_width // 2
             text_y = center_y - text_height // 2
+            
+            # Ensure text stays within bounds (especially important for small surfaces)
+            margin = 5  # 5px margin from edges
+            text_x = max(margin, min(text_x, width - text_width - margin))
+            text_y = max(margin, min(text_y, height - text_height - margin))
             
             # Draw the surface name with normal font
             draw.text((text_x, text_y), surface_name, font=font, fill=amber_color)
             
-            logger.info(f"✅ Added center name: '{surface_name}' at {text_x},{text_y} font_size={font_size} text_width={text_width} (target: {target_text_width})")
+            logger.info(f"✅ FIXED surface name: '{surface_name}' at ({text_x},{text_y}) font={font_size}px size={text_width}x{text_height} (target: {target_text_width}) canvas={width}x{height}")
             
         except Exception as e:
             logger.error(f"❌ Font loading failed: {e}, falling back to vector text")
-            # Fallback to vector text if font loading fails
-            # Make font size much larger for visibility
-            font_size = max(60, int(target_text_width / len(surface_name) * 1.5))  # Increased from 20 to 60 minimum
-            text_width_estimate = len(surface_name) * font_size * 0.8  # Increased width factor
+            # Adaptive fallback for small surfaces
+            if width <= 500:
+                fallback_font_size = max(8, int(width * 0.03))  # Smaller fallback for small surfaces
+            else:
+                fallback_font_size = max(60, int(target_text_width / len(surface_name) * 1.5))  # Original logic for large surfaces
+            
+            text_width_estimate = len(surface_name) * fallback_font_size * 0.8
             text_x = center_x - int(text_width_estimate // 2)
-            text_y = center_y - font_size // 2
+            text_y = center_y - fallback_font_size // 2
+            
+            # Bounds checking for fallback text
+            margin = 5
+            text_x = max(margin, min(text_x, width - int(text_width_estimate) - margin))
+            text_y = max(margin, min(text_y, height - fallback_font_size - margin))
             logger.info(f"🔤 Vector text fallback: size={font_size}, position=({text_x},{text_y})")
             draw_vector_text(draw, surface_name, text_x, text_y, font_size, amber_color)
     
@@ -880,7 +916,7 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
         'status': 'healthy',
-        'version': '18.0 - SURFACE NAMES + Linux Font Compatibility + Enhanced Visual Overlays',
+        'version': '19.0 - SMALL SURFACE NAME FIX + Adaptive Font Sizing + Enhanced Visual Overlays',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
