@@ -26,7 +26,7 @@ def test_surface_name_visibility():
             'showGrid': False,  # No grid to see text clearly
             'showPanelNumbers': False,  # No numbers to see text clearly
             'showName': True,  # SURFACE NAME ENABLED
-            'surfaceName': '🎯 SURFACE NAME TEST 🎯'  # Very obvious name
+            'surfaceName': 'TEST SCREEN'  # Simple text first - no emoji
         }
     }
     
@@ -70,7 +70,7 @@ def test_surface_name_visibility():
                 print("🔍 VERIFICATION INSTRUCTIONS:")
                 print(f"   1. Open the file: {filename}")
                 print("   2. Look for amber-colored text in the center")
-                print("   3. Text should read: '🎯 SURFACE NAME TEST 🎯'")
+                print("   3. Text should read: 'TEST SCREEN'")
                 print("   4. Text should be roughly 30% of canvas height")
                 print()
                 

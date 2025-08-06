@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw
 import base64
 import io
 import os
+# FORCE REBUILD v17.1: Linux font fixes MUST deploy for surface names to work
 import gc
 import logging
 import psutil
@@ -862,7 +863,7 @@ def health_check():
     return jsonify({
         'service': 'LED Pixel Map Cloud Renderer - ENHANCED 200M',
         'status': 'healthy',
-        'version': '17.1 - LINUX FONTS ACTIVE: DejaVu/Liberation fonts, simplified sizing, surface names should work',
+        'version': '18.0 - EMERGENCY REBUILD: Force deployment of ALL accumulated Linux font fixes for surface names',
         'message': 'No scaling, pixel-perfect generation for massive LED installations up to 200M pixels',
         'features': 'Enhanced chunked processing, adaptive compression, 200M pixel support',
         'colors': 'Full Red (255,0,0) alternating with Medium Grey (128,128,128)',
